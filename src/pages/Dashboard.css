@@ -46,7 +46,7 @@
 
 .dashboard-main {
   padding: 40px;
-  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -343,37 +343,188 @@
   color: #495057;
 }
 
-/* Responsive Design */
+/* Large Desktop Optimizations */
+@media (min-width: 1600px) {
+  .dashboard-main {
+    padding: 60px 80px;
+  }
+  
+  .profiles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+  }
+  
+  .editor-content {
+    grid-template-columns: 1fr 450px;
+    gap: 40px;
+  }
+}
+
+/* Desktop Optimizations */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .dashboard-main {
+    padding: 50px 60px;
+  }
+  
+  .profiles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+  
+  .editor-content {
+    grid-template-columns: 1fr 400px;
+    gap: 35px;
+  }
+}
+
+/* Medium Desktop */
+@media (max-width: 1200px) {
+  .dashboard-main {
+    padding: 30px;
+  }
+  
+  .editor-content {
+    grid-template-columns: 1fr 350px;
+    gap: 25px;
+  }
+}
+
+@media (max-width: 992px) {
+  .dashboard-main {
+    padding: 25px;
+  }
+  
+  .editor-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .profiles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard-header {
     padding: 15px 20px;
     flex-direction: column;
     gap: 15px;
+    text-align: center;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .user-info {
+    flex-direction: column;
+    gap: 10px;
   }
   
   .dashboard-main {
-    padding: 20px;
+    padding: 20px 15px;
   }
   
   .section-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .section-header h2 {
+    font-size: 1.3rem;
   }
   
   .profiles-grid {
     grid-template-columns: 1fr;
+    gap: 15px;
   }
   
-  .editor-content {
-    grid-template-columns: 1fr;
+  .profile-card {
+    padding: 15px;
+  }
+  
+  .profile-actions {
+    justify-content: space-between;
+  }
+  
+  .edit-btn, .activate-btn, .delete-btn {
+    flex: 1;
+    text-align: center;
   }
   
   .editor-actions {
     flex-direction: column;
     align-items: stretch;
+    gap: 10px;
   }
   
   .profile-name-input {
     min-width: unset;
+    width: 100%;
+  }
+  
+  .save-btn, .cancel-btn {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .obs-info {
+    text-align: center;
+  }
+  
+  .obs-info code {
+    word-break: break-all;
+    display: block;
+    margin-top: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    padding: 10px 15px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.3rem;
+  }
+  
+  .dashboard-main {
+    padding: 15px 10px;
+  }
+  
+  .profiles-section, .editor-section, .active-display-section, .no-active-section {
+    padding: 20px 15px;
+    border-radius: 8px;
+  }
+  
+  .section-header h2 {
+    font-size: 1.2rem;
+  }
+  
+  .create-btn {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .profile-header h3 {
+    font-size: 1rem;
+  }
+  
+  .profile-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .edit-btn, .activate-btn, .delete-btn {
+    width: 100%;
+    padding: 10px;
+  }
+  
+  .editor-content {
+    gap: 15px;
+  }
+  
+  .preview-section h3, .zones-section h3 {
+    font-size: 1.1rem;
   }
 }

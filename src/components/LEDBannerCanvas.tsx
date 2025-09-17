@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Zone } from '../lib/supabase'
+import './LEDBannerCanvas.css'
 
 interface LEDBannerCanvasProps {
   zones: Zone[]
@@ -125,19 +126,16 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
 
   return (
     <div className="led-banner-container">
-      <canvas
-        ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-        style={{
-          border: '8px solid #333',
-          background: '#000',
-          maxWidth: '100%',
-          height: 'auto'
-        }}
-      />
-      <button onClick={toggleAnimation} style={{ marginTop: '10px' }}>
-        {isAnimating ? 'Pause' : 'Play'}
+      <div className="canvas-wrapper">
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          className="led-canvas"
+        />
+      </div>
+      <button type="button" onClick={toggleAnimation} className="animation-toggle-btn">
+        {isAnimating ? '⏸️ PAUSE' : '▶️ PLAY'}
       </button>
     </div>
   )

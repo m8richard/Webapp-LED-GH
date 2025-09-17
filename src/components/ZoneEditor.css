@@ -121,3 +121,75 @@
   outline: none;
   border-color: #ff00ec;
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .zone-editor {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .zone-editor h3 {
+    font-size: 1.1rem;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .text-input, .color-text, .speed-number {
+    padding: 10px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .color-picker {
+    width: 50px;
+    height: 40px;
+  }
+  
+  .speed-slider {
+    height: 8px;
+  }
+  
+  .speed-slider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .speed-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .zone-editor {
+    padding: 12px;
+  }
+  
+  .zone-editor h3 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  
+  .color-input-group {
+    gap: 8px;
+  }
+  
+  .speed-input-group {
+    gap: 8px;
+  }
+  
+  .speed-number {
+    width: 70px;
+  }
+}

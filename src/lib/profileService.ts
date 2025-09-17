@@ -52,20 +52,69 @@ export class ProfileService {
   }
 
   static async activateProfile(profileId: string): Promise<void> {
-    // First, deactivate all profiles
-    await supabase
-      .from('led_banner_settings')
-      .update({ is_active: false })
-      .neq('id', 'never-matches') // Update all rows
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user?.email) {
+        throw new Error('User not authenticated')
+      }
 
-    // Then activate the selected profile
-    const { error } = await supabase
-      .from('led_banner_settings')
-      .update({ is_active: true })
-      .eq('id', profileId)
+      console.log('User email:', user.email)
+      console.log('Activating profile ID:', profileId)
 
-    if (error) {
-      console.error('Error activating profile:', error)
+      // First, verify the profile exists and belongs to the user
+      const { data: targetProfile, error: fetchError } = await supabase
+        .from('led_banner_settings')
+        .select('*')
+        .eq('id', profileId)
+        .single()
+
+      if (fetchError) {
+        console.error('Error fetching target profile:', fetchError)
+        throw new Error(`Profile not found: ${fetchError.message}`)
+      }
+
+      if (!targetProfile) {
+        throw new Error('Profile not found')
+      }
+
+      if (targetProfile.user_email !== user.email) {
+        throw new Error('Access denied: Profile belongs to another user')
+      }
+
+      console.log('Target profile found:', targetProfile.profile_name)
+
+      // Deactivate all of the current user's profiles
+      const { error: deactivateError } = await supabase
+        .from('led_banner_settings')
+        .update({ is_active: false })
+        .eq('user_email', user.email)
+
+      if (deactivateError) {
+        console.error('Error deactivating user profiles:', deactivateError)
+        throw new Error(`Failed to deactivate profiles: ${deactivateError.message}`)
+      }
+
+      console.log('User profiles deactivated')
+
+      // Activate the target profile
+      const { error: activateError } = await supabase
+        .from('led_banner_settings')
+        .update({ 
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profileId)
+
+      if (activateError) {
+        console.error('Error activating profile:', activateError)
+        throw new Error(`Failed to activate profile: ${activateError.message}`)
+      }
+
+      console.log('Profile activated successfully')
+
+    } catch (error) {
+      console.error('Profile activation failed:', error)
       throw error
     }
   }

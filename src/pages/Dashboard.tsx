@@ -122,14 +122,31 @@ const Dashboard = () => {
   }
 
   const handleActivateProfile = async (profile: BannerProfile) => {
+    if (profile.is_active) {
+      alert('This profile is already active!')
+      return
+    }
+
+    const currentActive = profiles.find(p => p.is_active)
+    const confirmMessage = currentActive 
+      ? `This will deactivate "${currentActive.profile_name}" and activate "${profile.profile_name}". Continue?`
+      : `Activate "${profile.profile_name}" for the live display?`
+    
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
     try {
       setActivating(true)
+      console.log('Activating profile:', profile.id, profile.profile_name)
       await ProfileService.activateProfile(profile.id)
+      console.log('Profile activated successfully')
       await loadData()
       alert(`"${profile.profile_name}" is now active and visible on the display!`)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error activating profile:', error)
-      alert('Error activating profile. Please try again.')
+      const errorMessage = error?.message || 'Unknown error occurred'
+      alert(`Error activating profile: ${errorMessage}\n\nPlease try again or check the console for details.`)
     } finally {
       setActivating(false)
     }

@@ -109,3 +109,53 @@
   font-size: 0.9rem;
   margin: 0;
 }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .access-denied-page {
+    padding: 10px;
+  }
+
+  .access-denied-container {
+    padding: 30px 20px;
+    margin: 0;
+    border-radius: 15px;
+  }
+
+  .access-denied-icon {
+    font-size: 3rem;
+  }
+
+  .access-denied-container h1 {
+    font-size: 1.5rem;
+  }
+
+  .access-denied-container p {
+    font-size: 1rem;
+  }
+
+  .sign-out-btn {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .access-denied-container {
+    padding: 25px 15px;
+  }
+
+  .access-denied-icon {
+    font-size: 2.5rem;
+  }
+
+  .access-denied-container h1 {
+    font-size: 1.3rem;
+  }
+
+  .sign-out-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+    width: 100%;
+  }
+}
