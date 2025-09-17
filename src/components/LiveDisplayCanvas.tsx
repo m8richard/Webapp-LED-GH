@@ -15,7 +15,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
   const scrollOffsetsRef = useRef<number[]>([0, 0, 0, 0])
-  const [isAnimating, setIsAnimating] = useState(true)
+  const [isAnimating] = useState(true)
   
   const defaultZones: Zone[] = [
     { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2 },
