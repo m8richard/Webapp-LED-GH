@@ -6,6 +6,21 @@ const DisplayPage = () => {
   const [activeProfile, setActiveProfile] = useState<BannerProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Remove body margins for full screen display
+  useEffect(() => {
+    document.body.style.margin = '0'
+    document.body.style.padding = '0'
+    document.body.style.overflow = 'hidden'
+    document.body.style.background = '#000'
+    
+    return () => {
+      document.body.style.margin = ''
+      document.body.style.padding = ''
+      document.body.style.overflow = ''
+      document.body.style.background = ''
+    }
+  }, [])
+
   useEffect(() => {
     const fetchActiveProfile = async () => {
       try {
@@ -50,41 +65,7 @@ const DisplayPage = () => {
     }
   }, [])
 
-  if (loading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        background: '#000',
-        color: 'white' 
-      }}>
-        <div>Loading display...</div>
-      </div>
-    )
-  }
-
-  if (!activeProfile) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        background: '#000',
-        color: 'white',
-        textAlign: 'center'
-      }}>
-        <div>
-          <h2>No Active Banner Profile</h2>
-          <p>Please activate a banner profile from the dashboard.</p>
-        </div>
-      </div>
-    )
-  }
-
-  return <LiveDisplayCanvas zones={activeProfile.zones_data} />
+  return <LiveDisplayCanvas zones={activeProfile?.zones_data} />
 }
 
 export default DisplayPage

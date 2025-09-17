@@ -130,88 +130,18 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   }, [zones, isAnimating])
 
   return (
-    <div className="live-display-container">
-      <div className="live-canvas-wrapper">
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-          className="live-canvas"
-        />
-      </div>
-      <style>{`
-        .live-display-container {
-          margin: 0;
-          padding: 0;
-          background: #000;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-        }
-        
-        .live-canvas-wrapper {
-          width: 100%;
-          max-width: min(1056px, 100vw - 40px);
-          border: 8px solid #333;
-          background: #000;
-          overflow: hidden;
-        }
-        
-        .live-canvas {
-          width: 100%;
-          height: auto;
-          display: block;
-          background: #000;
-        }
-        
-        @media (min-width: 1600px) {
-          .live-canvas-wrapper {
-            max-width: min(1400px, 100vw - 120px);
-            border: 10px solid #333;
-          }
-        }
-        
-        @media (min-width: 1200px) and (max-width: 1599px) {
-          .live-canvas-wrapper {
-            max-width: min(1200px, 100vw - 80px);
-          }
-        }
-        
-        @media (max-width: 1200px) {
-          .live-canvas-wrapper {
-            max-width: 100%;
-            margin: 20px;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .live-canvas-wrapper {
-            border: 6px solid #333;
-            margin: 15px;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .live-canvas-wrapper {
-            border: 4px solid #333;
-            margin: 10px;
-          }
-        }
-        
-        @media (orientation: landscape) and (max-height: 600px) {
-          .live-display-container {
-            align-items: flex-start;
-            padding-top: 20px;
-          }
-          
-          .live-canvas-wrapper {
-            margin: 10px;
-          }
-        }
-      `}</style>
-    </div>
+    <canvas
+      ref={canvasRef}
+      width={CANVAS_WIDTH}
+      height={CANVAS_HEIGHT}
+      style={{ 
+        display: 'block',
+        background: '#000',
+        width: '100vw',
+        height: '100vh',
+        objectFit: 'contain'
+      }}
+    />
   )
 }
 
