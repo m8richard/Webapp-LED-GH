@@ -13,13 +13,15 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
       
       <div className="form-group">
         <label htmlFor={`text-${zone.id}`}>Text:</label>
-        <input
-          type="text"
-          id={`text-${zone.id}`}
-          value={zone.text}
-          onChange={(e) => onUpdate({ text: e.target.value })}
-          className="text-input"
-        />
+        <div className="text-input-group">
+          <input
+            type="text"
+            id={`text-${zone.id}`}
+            value={zone.text}
+            onChange={(e) => onUpdate({ text: e.target.value })}
+            className="text-input"
+          />
+        </div>
       </div>
       
       <div className="form-group">
@@ -63,6 +65,7 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
             value={zone.speed}
             onChange={(e) => onUpdate({ speed: parseFloat(e.target.value) })}
             className="speed-number"
+            placeholder="Speed (0.5-5.0)"
           />
         </div>
       </div>

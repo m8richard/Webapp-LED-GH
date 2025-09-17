@@ -22,8 +22,14 @@
   color: #ccc;
 }
 
+.text-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .text-input {
-  width: 100%;
+  flex: 1;
   padding: 0.5rem;
   border: 1px solid #444;
   border-radius: 4px;
