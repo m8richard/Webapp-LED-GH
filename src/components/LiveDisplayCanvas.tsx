@@ -1,15 +1,30 @@
 import { useEffect, useRef, useState } from 'react'
-import { Zone } from '../lib/supabase'
 
-interface LEDBannerCanvasProps {
-  zones: Zone[]
+interface Zone {
+  id: number
+  text: string
+  color: string
+  speed: number
 }
 
-const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
+interface LiveDisplayCanvasProps {
+  zones?: Zone[]
+}
+
+const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>()
   const scrollOffsetsRef = useRef<number[]>([0, 0, 0, 0])
   const [isAnimating, setIsAnimating] = useState(true)
+  
+  const defaultZones: Zone[] = [
+    { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2 },
+    { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5 },
+    { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5 },
+    { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8 }
+  ]
+
+  const zones = propZones || defaultZones
 
   const CANVAS_WIDTH = 1056
   const CANVAS_HEIGHT = 384
@@ -39,16 +54,11 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
     }).catch(console.error)
 
     const drawZone = (zone: Zone, yPosition: number, scrollOffset: number) => {
-      const width = zone.id === 4 ? 864 : CANVAS_WIDTH // Zone 4 is smaller
+      const width = zone.id === 4 ? 864 : CANVAS_WIDTH
       
       // Draw zone background
       ctx.fillStyle = '#000000'
       ctx.fillRect(0, yPosition, width, ZONE_HEIGHT)
-      
-      // Draw zone border
-      ctx.strokeStyle = '#333333'
-      ctx.lineWidth = 2
-      ctx.strokeRect(0, yPosition, width, ZONE_HEIGHT)
       
       // Configure text
       const fontSize = 48
@@ -119,12 +129,16 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
     }
   }, [zones, isAnimating])
 
-  const toggleAnimation = () => {
-    setIsAnimating(!isAnimating)
-  }
-
   return (
-    <div className="led-banner-container">
+    <div style={{ 
+      margin: 0, 
+      padding: 0, 
+      background: '#000', 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center' 
+    }}>
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}
@@ -132,15 +146,11 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         style={{
           border: '8px solid #333',
           background: '#000',
-          maxWidth: '100%',
-          height: 'auto'
+          display: 'block'
         }}
       />
-      <button onClick={toggleAnimation} style={{ marginTop: '10px' }}>
-        {isAnimating ? 'Pause' : 'Play'}
-      </button>
     </div>
   )
 }
 
-export default LEDBannerCanvas
+export default LiveDisplayCanvas

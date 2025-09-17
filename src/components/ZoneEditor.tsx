@@ -1,4 +1,4 @@
-import { Zone } from '../App'
+import { Zone } from '../lib/supabase'
 import './ZoneEditor.css'
 
 interface ZoneEditorProps {
