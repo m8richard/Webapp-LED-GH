@@ -14,10 +14,10 @@ const Dashboard = () => {
   const [isCreating, setIsCreating] = useState(false)
   const [newProfileName, setNewProfileName] = useState('')
   const [currentZones, setCurrentZones] = useState<Zone[]>([
-    { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2 },
-    { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5 },
-    { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5 },
-    { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8 }
+    { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none' },
+    { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5, lineMode: 'single', backgroundType: 'none' },
+    { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5, lineMode: 'single', backgroundType: 'none' },
+    { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8, lineMode: 'single', backgroundType: 'none' }
   ])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -65,10 +65,10 @@ const Dashboard = () => {
     setSelectedProfile(null)
     setNewProfileName('')
     setCurrentZones([
-      { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2 },
-      { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5 },
-      { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5 },
-      { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8 }
+      { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none' },
+      { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5, lineMode: 'single', backgroundType: 'none' },
+      { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5, lineMode: 'single', backgroundType: 'none' },
+      { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8, lineMode: 'single', backgroundType: 'none' }
     ])
   }
 

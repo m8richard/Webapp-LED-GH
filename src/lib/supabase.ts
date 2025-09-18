@@ -20,11 +20,22 @@ export interface BannerProfile {
   updated_at: string
 }
 
+export interface SubZone {
+  text: string
+  color: string
+  speed: number
+}
+
 export interface Zone {
   id: number
   text: string
   color: string
   speed: number
+  // New fields for enhanced functionality (optional with defaults)
+  lineMode?: 'single' | 'double' // defaults to 'single'
+  subZone?: SubZone // For second line when lineMode is 'double'
+  backgroundType?: 'none' | 'image' | 'video' // defaults to 'none'
+  backgroundUrl?: string
 }
 
 // Helper functions

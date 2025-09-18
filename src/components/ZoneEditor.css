@@ -11,6 +11,62 @@
   color: #ff00ec;
 }
 
+.zone-editor h4 {
+  margin: 1rem 0 0.5rem 0;
+  color: #ccc;
+  font-size: 1rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #444;
+}
+
+.line-mode-group {
+  display: flex;
+  gap: 1rem;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: #ccc;
+}
+
+.radio-label input[type="radio"] {
+  margin: 0;
+}
+
+.line-section {
+  background: #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid #444;
+}
+
+.background-section {
+  background: #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid #444;
+}
+
+.background-type-select, .url-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #333;
+  color: white;
+  font-size: 14px;
+}
+
+.background-type-select:focus, .url-input:focus {
+  outline: none;
+  border-color: #ff00ec;
+}
+
 .form-group {
   margin-bottom: 0.8rem;
 }
