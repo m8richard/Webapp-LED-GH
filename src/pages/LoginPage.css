@@ -1,5 +1,6 @@
 .login-page {
   min-height: 100vh;
+  width: 100vw;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,7 +10,6 @@
 
 .login-container {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 40px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
@@ -120,8 +120,14 @@
 }
 
 @media (max-width: 480px) {
+  .login-page {
+    padding: 15px;
+  }
+
   .login-container {
     padding: 25px 15px;
+    max-width: none;
+    width: 100%;
   }
 
   .login-header h1 {

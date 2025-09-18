@@ -1,11 +1,13 @@
 .dashboard {
   min-height: 100vh;
+  width: 100%;
   background: #f5f5f5;
 }
 
 .dashboard-header {
   background: white;
   padding: 20px 40px;
+  width: 100%;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: space-between;
@@ -409,6 +411,7 @@
     flex-direction: column;
     gap: 15px;
     text-align: center;
+    width: 100%;
   }
   
   .dashboard-header h1 {
@@ -422,6 +425,7 @@
   
   .dashboard-main {
     padding: 20px 15px;
+    width: 100%;
   }
   
   .section-header {
@@ -482,6 +486,7 @@
 @media (max-width: 480px) {
   .dashboard-header {
     padding: 10px 15px;
+    width: 100%;
   }
   
   .dashboard-header h1 {
@@ -490,6 +495,7 @@
   
   .dashboard-main {
     padding: 15px 10px;
+    width: 100%;
   }
   
   .profiles-section, .editor-section, .active-display-section, .no-active-section {
