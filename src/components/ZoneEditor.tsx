@@ -207,6 +207,7 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
         <div className="form-group">
           <label>Background Type:</label>
           <select 
+            title="Background Type"
             value={zone.backgroundType || 'none'}
             onChange={(e) => onUpdate({ backgroundType: e.target.value as 'none' | 'image' | 'video' })}
             className="background-type-select"

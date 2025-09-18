@@ -18,6 +18,12 @@
   width: 100%;
 }
 
+.login-logo {
+  height: 60px;
+  width: auto;
+  margin-bottom: 20px;
+}
+
 .login-header h1 {
   color: #333;
   margin-bottom: 10px;
@@ -104,6 +110,10 @@
     margin: 0;
     border-radius: 15px;
   }
+  
+  .login-logo {
+    height: 50px;
+  }
 
   .login-header h1 {
     font-size: 1.5rem;
@@ -128,6 +138,10 @@
     padding: 25px 15px;
     max-width: none;
     width: 100%;
+  }
+  
+  .login-logo {
+    height: 45px;
   }
 
   .login-header h1 {

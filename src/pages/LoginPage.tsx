@@ -26,8 +26,9 @@ const LoginPage = () => {
     <div className="login-page">
       <div className="login-container">
         <div className="login-header">
-          <h1>LED Banner Editor</h1>
-          <p>Gentle Mates Team Access Only</p>
+          <img src="/M8PatchBlack.png" alt="GH Gentle Mates Logo" className="login-logo" />
+          <h1>Editeur de bannière LED</h1>
+          <p>GH Gentle Mates - Accès équipe uniquement</p>
         </div>
 
         <div className="login-form">

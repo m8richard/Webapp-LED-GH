@@ -163,7 +163,10 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>LED Banner Editor</h1>
+        <div className="header-logo-title">
+          <img src="/M8PatchBlack.png" alt="GH Gentle Mates Logo" className="header-logo" />
+          <h1>Editeur de bannière LED (GH Gentle Mates)</h1>
+        </div>
         <div className="user-info">
           <span>Welcome, {user?.email}</span>
           <button onClick={handleSignOut} className="sign-out-btn">
