@@ -14,10 +14,10 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   const backgroundElementsRef = useRef<Map<string, HTMLImageElement | HTMLVideoElement>>(new Map())
   
   const defaultZones: Zone[] = [
-    { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none' },
-    { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5, lineMode: 'single', backgroundType: 'none' },
-    { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5, lineMode: 'single', backgroundType: 'none' },
-    { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8, lineMode: 'single', backgroundType: 'none' }
+    { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' },
+    { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' },
+    { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' },
+    { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' }
   ]
 
   const zones = propZones || defaultZones
@@ -88,62 +88,108 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       })
     }
 
+    const drawBackground = async (zone: Zone, bgX: number, bgY: number, bgWidth: number, bgHeight: number) => {
+      if ((zone.backgroundType || 'none') === 'none' || !zone.backgroundUrl) {
+        ctx.fillStyle = '#000000'
+        ctx.fillRect(bgX, bgY, bgWidth, bgHeight)
+        return
+      }
+
+      const bgElement = await loadBackgroundElement(zone)
+      if (!bgElement || !(bgElement instanceof HTMLImageElement || bgElement instanceof HTMLVideoElement)) {
+        ctx.fillStyle = '#000000'
+        ctx.fillRect(bgX, bgY, bgWidth, bgHeight)
+        return
+      }
+
+      // Get media dimensions
+      const mediaWidth = bgElement instanceof HTMLImageElement ? bgElement.naturalWidth : bgElement.videoWidth
+      const mediaHeight = bgElement instanceof HTMLImageElement ? bgElement.naturalHeight : bgElement.videoHeight
+      const mediaRatio = mediaWidth / mediaHeight
+      const targetRatio = bgWidth / bgHeight
+      
+      // Fill background with black first
+      ctx.fillStyle = '#000000'
+      ctx.fillRect(bgX, bgY, bgWidth, bgHeight)
+      
+      // Set up clipping to ensure background stays within bounds
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(bgX, bgY, bgWidth, bgHeight)
+      ctx.clip()
+      
+      let drawWidth, drawHeight, drawX, drawY
+      const mode = zone.backgroundMode || 'contain'
+      
+      switch (mode) {
+        case 'contain':
+          // Fit entire media within area, maintain aspect ratio
+          if (mediaRatio > targetRatio) {
+            drawWidth = bgWidth
+            drawHeight = bgWidth / mediaRatio
+            drawX = bgX
+            drawY = bgY + (bgHeight - drawHeight) / 2
+          } else {
+            drawHeight = bgHeight
+            drawWidth = bgHeight * mediaRatio
+            drawX = bgX + (bgWidth - drawWidth) / 2
+            drawY = bgY
+          }
+          break
+          
+        case 'cover':
+          // Fill entire area, maintain aspect ratio, may crop
+          if (mediaRatio > targetRatio) {
+            drawHeight = bgHeight
+            drawWidth = bgHeight * mediaRatio
+            drawX = bgX + (bgWidth - drawWidth) / 2
+            drawY = bgY
+          } else {
+            drawWidth = bgWidth
+            drawHeight = bgWidth / mediaRatio
+            drawX = bgX
+            drawY = bgY + (bgHeight - drawHeight) / 2
+          }
+          break
+          
+        case 'fill':
+        case 'stretch':
+          // Fill entire area, ignore aspect ratio
+          drawWidth = bgWidth
+          drawHeight = bgHeight
+          drawX = bgX
+          drawY = bgY
+          break
+          
+        default:
+          // Default to contain
+          if (mediaRatio > targetRatio) {
+            drawWidth = bgWidth
+            drawHeight = bgWidth / mediaRatio
+            drawX = bgX
+            drawY = bgY + (bgHeight - drawHeight) / 2
+          } else {
+            drawHeight = bgHeight
+            drawWidth = bgHeight * mediaRatio
+            drawX = bgX + (bgWidth - drawWidth) / 2
+            drawY = bgY
+          }
+      }
+      
+      ctx.drawImage(bgElement, drawX, drawY, drawWidth, drawHeight)
+      ctx.restore() // Restore clipping
+    }
+
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
       const width = zone.id === 4 ? 864 : CANVAS_WIDTH
       const currentZoneHeight = ZONE_HEIGHT
       
-      // Draw zone background (solid color or media)
-      if ((zone.backgroundType || 'none') !== 'none' && zone.backgroundUrl) {
-        const bgElement = await loadBackgroundElement(zone)
-        if (bgElement && bgElement instanceof HTMLImageElement) {
-          // Calculate contain dimensions
-          const imgRatio = bgElement.naturalWidth / bgElement.naturalHeight
-          const zoneRatio = width / currentZoneHeight
-          
-          let drawWidth, drawHeight, drawX, drawY
-          if (imgRatio > zoneRatio) {
-            drawWidth = width
-            drawHeight = width / imgRatio
-            drawX = 0
-            drawY = yPosition + (currentZoneHeight - drawHeight) / 2
-          } else {
-            drawHeight = currentZoneHeight
-            drawWidth = currentZoneHeight * imgRatio
-            drawX = (width - drawWidth) / 2
-            drawY = yPosition
-          }
-          
-          ctx.fillStyle = '#000000'
-          ctx.fillRect(0, yPosition, width, currentZoneHeight)
-          ctx.drawImage(bgElement, drawX, drawY, drawWidth, drawHeight)
-        } else if (bgElement && bgElement instanceof HTMLVideoElement) {
-          // Calculate contain dimensions for video
-          const vidRatio = bgElement.videoWidth / bgElement.videoHeight
-          const zoneRatio = width / currentZoneHeight
-          
-          let drawWidth, drawHeight, drawX, drawY
-          if (vidRatio > zoneRatio) {
-            drawWidth = width
-            drawHeight = width / vidRatio
-            drawX = 0
-            drawY = yPosition + (currentZoneHeight - drawHeight) / 2
-          } else {
-            drawHeight = currentZoneHeight
-            drawWidth = currentZoneHeight * vidRatio
-            drawX = (width - drawWidth) / 2
-            drawY = yPosition
-          }
-          
-          ctx.fillStyle = '#000000'
-          ctx.fillRect(0, yPosition, width, currentZoneHeight)
-          ctx.drawImage(bgElement, drawX, drawY, drawWidth, drawHeight)
-        } else {
-          ctx.fillStyle = '#000000'
-          ctx.fillRect(0, yPosition, width, currentZoneHeight)
-        }
+      if ((zone.lineMode || 'single') === 'single') {
+        // Single line mode - background covers entire zone
+        await drawBackground(zone, 0, yPosition, width, currentZoneHeight)
       } else {
-        ctx.fillStyle = '#000000'
-        ctx.fillRect(0, yPosition, width, currentZoneHeight)
+        // Double line mode - background covers entire zone (not split per sub-zone)
+        await drawBackground(zone, 0, yPosition, width, currentZoneHeight)
       }
       
       if ((zone.lineMode || 'single') === 'single') {

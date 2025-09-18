@@ -36,6 +36,7 @@ export interface Zone {
   subZone?: SubZone // For second line when lineMode is 'double'
   backgroundType?: 'none' | 'image' | 'video' // defaults to 'none'
   backgroundUrl?: string
+  backgroundMode?: 'contain' | 'cover' | 'fill' | 'stretch' // defaults to 'contain'
 }
 
 // Helper functions
