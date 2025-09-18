@@ -38,10 +38,13 @@ export const getCurrentUser = async () => {
 }
 
 export const signInWithGoogle = async () => {
+  // Use environment variable for production URL, fallback to current origin for local dev
+  const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin
+  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/dashboard`
+      redirectTo: `${baseUrl}/dashboard`
     }
   })
   return { data, error }
