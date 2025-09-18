@@ -4,7 +4,7 @@ import LiveDisplayCanvas from '../components/LiveDisplayCanvas'
 
 const DisplayPage = () => {
   const [activeProfile, setActiveProfile] = useState<BannerProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
 
   // Remove body margins for full screen display
   useEffect(() => {
