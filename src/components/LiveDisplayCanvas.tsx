@@ -10,6 +10,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   const animationRef = useRef<number>()
   const scrollOffsetsRef = useRef<number[]>([0, 0, 0, 0])
   const subScrollOffsetsRef = useRef<number[]>([0, 0, 0, 0])
+  const lastTimeRef = useRef<number>(0)
   const [isAnimating] = useState(true)
   const backgroundElementsRef = useRef<Map<string, HTMLImageElement | HTMLVideoElement>>(new Map())
   
@@ -272,7 +273,10 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       }
     }
 
-    const animate = async () => {
+    const animate = async (currentTime: number) => {
+      const deltaTime = currentTime - lastTimeRef.current
+      lastTimeRef.current = currentTime
+      
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
       
       // Draw each zone
@@ -282,15 +286,21 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         await drawZone(zone, yPosition, scrollOffsetsRef.current[index], subScrollOffsetsRef.current[index])
       }
       
-      // Update scroll offsets
+      // Update scroll offsets with time-based animation
       if (isAnimating) {
         zones.forEach((zone, index) => {
+          // Convert speed to pixels per second (assuming 60fps baseline)
+          const pixelsPerSecond = zone.speed * 60
+          const actualSpeed = (pixelsPerSecond * deltaTime) / 1000
+          
           // Update main line scroll offset
-          scrollOffsetsRef.current[index] -= zone.speed
+          scrollOffsetsRef.current[index] -= actualSpeed
           
           // Update sub-line scroll offset for double line mode
           if ((zone.lineMode || 'single') === 'double' && zone.subZone) {
-            subScrollOffsetsRef.current[index] -= zone.subZone.speed
+            const subPixelsPerSecond = zone.subZone.speed * 60
+            const subActualSpeed = (subPixelsPerSecond * deltaTime) / 1000
+            subScrollOffsetsRef.current[index] -= subActualSpeed
           }
         })
       }
@@ -298,7 +308,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       animationRef.current = requestAnimationFrame(animate)
     }
 
-    animate()
+    animate(0)
 
     return () => {
       if (animationRef.current) {
