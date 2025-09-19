@@ -26,6 +26,14 @@ export interface WeatherData {
   icon: string
 }
 
+export interface DailyWeatherData {
+  date: string
+  weatherCode: number
+  tempMin: number
+  tempMax: number
+  icon: string
+}
+
 export interface Match {
   id: number
   name: string
@@ -60,14 +68,13 @@ export interface Player {
 }
 
 // Weather API (using free OpenWeatherMap)
-const WEATHER_API_KEY = '7f7b8c5e9d7e8f3c2d6b4a1e8f5c9d2a' // You'll need to replace with actual API key
 const PARIS_COORDS = { lat: 48.8566, lon: 2.3522 }
 
-export const getWeatherData = async (): Promise<WeatherData | null> => {
+export const get3DayWeatherForecast = async (): Promise<DailyWeatherData[]> => {
   try {
-    // Using OpenWeatherMap API (free tier)
+    // Using OpenMeteo API (free)
     const response = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${PARIS_COORDS.lat}&lon=${PARIS_COORDS.lon}&appid=${WEATHER_API_KEY}&units=metric&lang=fr`
+      `https://api.open-meteo.com/v1/forecast?latitude=${PARIS_COORDS.lat}&longitude=${PARIS_COORDS.lon}&daily=weather_code,temperature_2m_min,temperature_2m_max&timezone=Europe/Paris&forecast_days=3`
     )
     
     if (!response.ok) {
@@ -75,36 +82,97 @@ export const getWeatherData = async (): Promise<WeatherData | null> => {
     }
     
     const data = await response.json()
+    const forecasts: DailyWeatherData[] = []
     
-    return {
-      temperature: Math.round(data.main.temp),
-      description: data.weather[0].description,
-      icon: getWeatherIcon(data.weather[0].icon)
+    for (let i = 0; i < 3; i++) {
+      const date = new Date(data.daily.time[i])
+      const dateOptions: Intl.DateTimeFormatOptions = { 
+        weekday: i === 0 ? undefined : 'short',
+        day: 'numeric', 
+        month: 'short' 
+      }
+      
+      let formattedDate = ''
+      if (i === 0) {
+        formattedDate = "Aujourd'hui : "
+      } else if (i === 1) {
+        formattedDate = "Demain :"
+      } else {
+        formattedDate = date.toLocaleDateString('fr-FR', dateOptions)
+      }
+      
+      forecasts.push({
+        date: formattedDate,
+        weatherCode: data.daily.weather_code[i],
+        tempMin: Math.round(data.daily.temperature_2m_min[i]),
+        tempMax: Math.round(data.daily.temperature_2m_max[i]),
+        icon: getWeatherIconFromCode(data.daily.weather_code[i])
+      })
     }
+    
+    return forecasts
   } catch (error) {
     console.error('Weather API error:', error)
     // Fallback weather data
-    return {
-      temperature: 18,
-      description: 'nuageux',
-      icon: '☁️'
-    }
+    return [
+      {
+        date: "Aujourd'hui :",
+        weatherCode: 3,
+        tempMin: 15,
+        tempMax: 22,
+        icon: '☁️'
+      },
+      {
+        date: "Demain :", 
+        weatherCode: 1,
+        tempMin: 12,
+        tempMax: 20,
+        icon: '🌤️'
+      },
+      {
+        date: "Après-demain :",
+        weatherCode: 61,
+        tempMin: 14,
+        tempMax: 18,
+        icon: '🌧️'
+      }
+    ]
   }
 }
 
-const getWeatherIcon = (iconCode: string): string => {
-  const iconMap: Record<string, string> = {
-    '01d': '☀️', '01n': '🌙',
-    '02d': '⛅', '02n': '☁️',
-    '03d': '☁️', '03n': '☁️',
-    '04d': '☁️', '04n': '☁️',
-    '09d': '🌧️', '09n': '🌧️',
-    '10d': '🌦️', '10n': '🌧️',
-    '11d': '⛈️', '11n': '⛈️',
-    '13d': '❄️', '13n': '❄️',
-    '50d': '🌫️', '50n': '🌫️'
+const getWeatherIconFromCode = (weatherCode: number): string => {
+  // OpenMeteo weather codes mapping
+  const codeMap: Record<number, string> = {
+    0: '☀️',     // Clear sky
+    1: '🌤️',     // Mainly clear
+    2: '⛅',     // Partly cloudy
+    3: '☁️',     // Overcast
+    45: '🌫️',    // Fog
+    48: '🌫️',    // Depositing rime fog
+    51: '🌦️',    // Light drizzle
+    53: '🌧️',    // Moderate drizzle
+    55: '🌧️',    // Dense drizzle
+    56: '🌧️',    // Light freezing drizzle
+    57: '🌧️',    // Dense freezing drizzle
+    61: '🌧️',    // Slight rain
+    63: '🌧️',    // Moderate rain
+    65: '🌧️',    // Heavy rain
+    66: '🌧️',    // Light freezing rain
+    67: '🌧️',    // Heavy freezing rain
+    71: '❄️',    // Slight snow
+    73: '❄️',    // Moderate snow
+    75: '❄️',    // Heavy snow
+    77: '❄️',    // Snow grains
+    80: '🌦️',    // Slight rain showers
+    81: '🌧️',    // Moderate rain showers
+    82: '🌧️',    // Violent rain showers
+    85: '❄️',    // Slight snow showers
+    86: '❄️',    // Heavy snow showers
+    95: '⛈️',    // Thunderstorm
+    96: '⛈️',    // Thunderstorm with slight hail
+    99: '⛈️'     // Thunderstorm with heavy hail
   }
-  return iconMap[iconCode] || '🌤️'
+  return codeMap[weatherCode] || '🌤️'
 }
 
 export const getUpcomingMatches = async (limit: number = 5): Promise<{ match: Match, game: Game, teamA?: Team, teamB?: Team }[]> => {
@@ -264,17 +332,17 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
   const elements: InfographicElement[] = []
   
   try {
-    // 1. Weather in Paris
-    const weather = await getWeatherData()
-    if (weather) {
+    // 1. 3-day Weather forecast for Paris
+    const weatherForecast = await get3DayWeatherForecast()
+    weatherForecast.forEach((forecast, index) => {
       elements.push({
-        id: 'weather',
+        id: `weather-day-${index}`,
         type: 'weather',
-        content: `Paris ${weather.icon} ${weather.temperature}°C • ${weather.description}`,
+        content: `Paris ${forecast.date} ${forecast.icon} ${forecast.tempMin}°/${forecast.tempMax}°C`,
         color: '#00BFFF',
         duration: 4000
       })
-    }
+    })
     
     // 2. Clean facility reminder (French then English)
     elements.push({

@@ -226,9 +226,10 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         if (element.imageUrl) {
           const logoImg = logoImagesRef.current.get(element.imageUrl)
           if (logoImg && logoImg.complete) {
-            // Maintain aspect ratio: calculate width based on height
+            // Maintain aspect ratio with max width constraint
             const logoHeight = height * 0.7 // 70% of zone height
-            logoWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
+            const calculatedWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
+            logoWidth = Math.min(calculatedWidth, 200) // Max width 200px
           } else if (!logoImagesRef.current.has(element.imageUrl)) {
             // Load image if not in cache
             const newImg = new Image()
@@ -281,8 +282,14 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
               if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
                 const logoHeight = height * 0.7
                 const logoY = yPosition + (height - logoHeight) / 2
-                const actualLogoWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
-                ctx.drawImage(logoImg, drawX, logoY, actualLogoWidth, logoHeight)
+                const calculatedWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
+                const actualLogoWidth = Math.min(calculatedWidth, 200) // Max width 200px
+                // Calculate height to maintain aspect ratio if width was constrained
+                const actualLogoHeight = actualLogoWidth < calculatedWidth 
+                  ? (logoImg.naturalHeight / logoImg.naturalWidth) * actualLogoWidth 
+                  : logoHeight
+                const adjustedLogoY = yPosition + (height - actualLogoHeight) / 2
+                ctx.drawImage(logoImg, drawX, adjustedLogoY, actualLogoWidth, actualLogoHeight)
                 drawX += actualLogoWidth + 20
               }
             } catch (error) {
