@@ -293,6 +293,51 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
             <strong>Note:</strong> Text and line settings are disabled in infographics mode. 
             Only background, speed, and color settings apply.
           </p>
+          
+          <div className="form-group">
+            <label htmlFor={`infographics-color-${zone.id}`}>Color:</label>
+            <div className="color-input-group">
+              <input
+                type="color"
+                id={`infographics-color-${zone.id}`}
+                value={zone.color}
+                onChange={(e) => onUpdate({ color: e.target.value })}
+                className="color-picker"
+              />
+              <input
+                type="text"
+                value={zone.color}
+                onChange={(e) => onUpdate({ color: e.target.value })}
+                className="color-text"
+                placeholder="#ff00ec"
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor={`infographics-speed-${zone.id}`}>Scrolling Speed:</label>
+            <div className="speed-input-group">
+              <input
+                type="range"
+                id={`infographics-speed-${zone.id}`}
+                min="0.5"
+                max="5"
+                step="0.1"
+                value={zone.speed}
+                onChange={(e) => onUpdate({ speed: parseFloat(e.target.value) })}
+                className="speed-slider"
+              />
+              <input
+                type="number"
+                min="0.5"
+                max="5"
+                step="0.1"
+                value={zone.speed}
+                onChange={(e) => onUpdate({ speed: parseFloat(e.target.value) })}
+                className="speed-number"
+              />
+            </div>
+          </div>
         </div>
       )}
 

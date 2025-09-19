@@ -281,7 +281,6 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
               const logoImg = logoImagesRef.current.get(element.imageUrl)
               if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
                 const logoHeight = height * 0.7
-                const logoY = yPosition + (height - logoHeight) / 2
                 const calculatedWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
                 const actualLogoWidth = Math.min(calculatedWidth, 200) // Max width 200px
                 // Calculate height to maintain aspect ratio if width was constrained
