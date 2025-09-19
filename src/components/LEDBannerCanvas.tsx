@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Zone } from '../lib/supabase'
 import { loadAllFonts, getFontFamily } from '../lib/fonts'
+import { generateInfographicElements, InfographicElement } from '../lib/infographics'
 import './LEDBannerCanvas.css'
 
 interface LEDBannerCanvasProps {
@@ -15,6 +16,10 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
   const lastTimeRef = useRef<number>(0)
   const [isAnimating, setIsAnimating] = useState(true)
   const backgroundElementsRef = useRef<Map<string, HTMLImageElement | HTMLVideoElement>>(new Map())
+  const infographicElementsRef = useRef<Record<number, InfographicElement[]>>({})
+  const currentInfographicRef = useRef<Record<number, number>>({})
+  const infographicTimerRef = useRef<Record<number, number>>({})
+  const logoImagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
 
   const CANVAS_WIDTH = 1056
   const CANVAS_HEIGHT = 384
@@ -29,6 +34,24 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
 
     // Load all fonts
     loadAllFonts().catch(console.error)
+
+    // Initialize infographics for zones in infographics mode
+    const initializeInfographics = async () => {
+      for (const zone of zones) {
+        if (zone.displayMode === 'infographics') {
+          try {
+            const elements = await generateInfographicElements()
+            infographicElementsRef.current[zone.id] = elements
+            currentInfographicRef.current[zone.id] = 0
+            infographicTimerRef.current[zone.id] = Date.now()
+          } catch (error) {
+            console.error(`Error initializing infographics for zone ${zone.id}:`, error)
+          }
+        }
+      }
+    }
+
+    initializeInfographics()
 
     const loadBackgroundElement = (zone: Zone): Promise<HTMLImageElement | HTMLVideoElement | null> => {
       return new Promise((resolve) => {
@@ -161,22 +184,146 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       ctx.restore() // Restore clipping
     }
 
+    const drawInfographics = async (zone: Zone, yPosition: number, width: number, height: number, scrollOffset: number) => {
+      const elements = infographicElementsRef.current[zone.id]
+      if (!elements || elements.length === 0) return
+
+      const fontSize = 36
+      const elementSpacing = 150 // Space between different elements
+      const infographicsFont = '10PixelBold' // Force pixel font for infographics
+      
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, yPosition, width, height)
+      ctx.clip()
+      
+      // Calculate total carousel width
+      let totalCarouselWidth = 0
+      const elementData: { element: InfographicElement, width: number, logoWidth: number }[] = []
+      
+      for (const element of elements) {
+        ctx.font = `bold ${fontSize}px ${getFontFamily(infographicsFont)}`
+        
+        let textWidth = 0
+        if (element.type === 'match' && element.customData) {
+          // For matches with custom data, measure both lines and use the wider one
+          const matchInfoWidth = ctx.measureText(element.customData.matchInfo || '').width
+          const dateInfoWidth = ctx.measureText(element.customData.dateInfo || '').width
+          textWidth = Math.max(matchInfoWidth, dateInfoWidth)
+        } else {
+          textWidth = ctx.measureText(element.content).width
+        }
+        
+        let logoWidth = 0
+        if (element.imageUrl) {
+          const logoImg = logoImagesRef.current.get(element.imageUrl)
+          if (logoImg && logoImg.complete) {
+            // Maintain aspect ratio: calculate width based on height
+            const logoHeight = height * 0.7 // 70% of zone height
+            logoWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
+          } else if (!logoImagesRef.current.has(element.imageUrl)) {
+            // Load image if not in cache
+            const newImg = new Image()
+            newImg.crossOrigin = 'anonymous'
+            newImg.onload = () => {
+              logoImagesRef.current.set(element.imageUrl!, newImg)
+            }
+            newImg.onerror = () => {
+              console.error('Failed to load logo:', element.imageUrl)
+            }
+            newImg.src = element.imageUrl
+            logoWidth = 100 // Reserve space while loading
+          } else {
+            logoWidth = 100 // Reserve space while loading
+          }
+        }
+        
+        const logoSpacing = logoWidth > 0 ? 20 : 0
+        const elementWidth = logoWidth + logoSpacing + textWidth
+        elementData.push({ element, width: elementWidth, logoWidth })
+        totalCarouselWidth += elementWidth + elementSpacing
+      }
+      
+      // Draw all elements in sequence
+      const textY = yPosition + (height / 2) + (fontSize / 3)
+      let currentPosition = scrollOffset
+      
+      // Repeat the carousel to create seamless looping
+      const numRepeats = Math.ceil((width + Math.abs(scrollOffset)) / totalCarouselWidth) + 1
+      
+      for (let repeat = 0; repeat < numRepeats; repeat++) {
+        let elementX = currentPosition
+        
+        for (let i = 0; i < elementData.length; i++) {
+          const { element, width: elementWidth, logoWidth } = elementData[i]
+          
+          // Skip if element is completely off screen
+          if (elementX > width || elementX + elementWidth < 0) {
+            elementX += elementWidth + elementSpacing
+            continue
+          }
+          
+          ctx.fillStyle = element.color || zone.color
+          let drawX = elementX
+          
+          // Draw logo if available
+          if (element.imageUrl && logoWidth > 0) {
+            try {
+              const logoImg = logoImagesRef.current.get(element.imageUrl)
+              if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+                const logoHeight = height * 0.7
+                const logoY = yPosition + (height - logoHeight) / 2
+                const actualLogoWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
+                ctx.drawImage(logoImg, drawX, logoY, actualLogoWidth, logoHeight)
+                drawX += actualLogoWidth + 20
+              }
+            } catch (error) {
+              // Silently continue if logo fails to load
+            }
+          }
+          
+          // Draw text
+          ctx.font = `bold ${fontSize}px ${getFontFamily(infographicsFont)}`
+          
+          if (element.type === 'match' && element.customData) {
+            // Multi-line rendering for matches
+            const lineHeight = fontSize * 1.2
+            const matchY = yPosition + (height / 2) - (lineHeight / 4)
+            const dateY = matchY + lineHeight
+            
+            ctx.fillText(element.customData.matchInfo || '', drawX, matchY)
+            ctx.fillText(element.customData.dateInfo || '', drawX, dateY)
+          } else {
+            // Single line rendering
+            ctx.fillText(element.content, drawX, textY)
+          }
+          
+          elementX += elementWidth + elementSpacing
+        }
+        
+        currentPosition += totalCarouselWidth
+      }
+      
+      ctx.restore()
+    }
+
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
       const width = zone.id === 4 ? 864 : CANVAS_WIDTH // Zone 4 is smaller
       const currentZoneHeight = ZONE_HEIGHT
       
-      if ((zone.lineMode || 'single') === 'single') {
-        // Single line mode - background covers entire zone
-        await drawBackground(zone, 0, yPosition, width, currentZoneHeight)
-      } else {
-        // Double line mode - background covers entire zone (not split per sub-zone)
-        await drawBackground(zone, 0, yPosition, width, currentZoneHeight)
-      }
+      // Always draw background first
+      await drawBackground(zone, 0, yPosition, width, currentZoneHeight)
       
       // Draw zone border
       ctx.strokeStyle = '#333333'
       ctx.lineWidth = 2
       ctx.strokeRect(0, yPosition, width, currentZoneHeight)
+
+      // Handle infographics mode
+      if (zone.displayMode === 'infographics') {
+        await drawInfographics(zone, yPosition, width, currentZoneHeight, scrollOffset)
+        return
+      }
       
       if ((zone.lineMode || 'single') === 'single') {
         // Single line mode - text in center of zone

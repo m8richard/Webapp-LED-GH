@@ -44,12 +44,39 @@
   border: 1px solid #444;
 }
 
-.background-section {
+.background-section, .infographics-section {
   background: #2a2a2a;
   border-radius: 6px;
   padding: 1rem;
   margin: 1rem 0;
   border: 1px solid #444;
+}
+
+.infographics-description, .infographics-note {
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 0.8rem;
+}
+
+.infographics-list {
+  color: #ccc;
+  margin: 0.8rem 0;
+  padding-left: 1.5rem;
+}
+
+.infographics-list li {
+  margin-bottom: 0.4rem;
+  font-size: 14px;
+}
+
+.infographics-note {
+  color: #ff9800;
+  font-style: italic;
+}
+
+.infographics-note strong {
+  color: #ff9800;
 }
 
 .background-type-select, .background-mode-select, .url-input, .font-select {

@@ -12,35 +12,67 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
     <div className="zone-editor">
       <h3>Zone {zone.id}</h3>
       
-      {/* Line Mode Selection */}
+      {/* Display Mode Selection */}
       <div className="form-group">
-        <label>Lines:</label>
+        <label>Display Mode:</label>
         <div className="line-mode-group">
           <label className="radio-label">
             <input
               type="radio"
-              name={`lineMode-${zone.id}`}
-              value="single"
-              checked={(zone.lineMode || 'single') === 'single'}
-              onChange={(e) => onUpdate({ lineMode: e.target.value as 'single' | 'double' })}
+              name={`displayMode-${zone.id}`}
+              value="text"
+              checked={(zone.displayMode || 'text') === 'text'}
+              onChange={(e) => onUpdate({ displayMode: e.target.value as 'text' | 'infographics' })}
             />
-            Single Line
+            Text Mode
           </label>
           <label className="radio-label">
             <input
               type="radio"
-              name={`lineMode-${zone.id}`}
-              value="double"
-              checked={(zone.lineMode || 'single') === 'double'}
-              onChange={(e) => onUpdate({ lineMode: e.target.value as 'single' | 'double' })}
+              name={`displayMode-${zone.id}`}
+              value="infographics"
+              checked={(zone.displayMode || 'text') === 'infographics'}
+              onChange={(e) => onUpdate({ displayMode: e.target.value as 'text' | 'infographics' })}
             />
-            Double Lines
+            Infographics Mode
           </label>
         </div>
       </div>
 
-      {/* First Line (or Single Line) */}
-      <div className="line-section">
+      {/* Line Mode Selection - Only show in text mode */}
+      {(zone.displayMode || 'text') === 'text' && (
+        <div className="form-group">
+          <label>Lines:</label>
+          <div className="line-mode-group">
+            <label className="radio-label">
+              <input
+                type="radio"
+                name={`lineMode-${zone.id}`}
+                value="single"
+                checked={(zone.lineMode || 'single') === 'single'}
+                onChange={(e) => onUpdate({ lineMode: e.target.value as 'single' | 'double' })}
+              />
+              Single Line
+            </label>
+            <label className="radio-label">
+              <input
+                type="radio"
+                name={`lineMode-${zone.id}`}
+                value="double"
+                checked={(zone.lineMode || 'single') === 'double'}
+                onChange={(e) => onUpdate({ lineMode: e.target.value as 'single' | 'double' })}
+              />
+              Double Lines
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Text Configuration - Only show in text mode */}
+      {(zone.displayMode || 'text') === 'text' && (
+        <>
+          {/* First Line (or Single Line) */}
+          <div className="line-section">
         <h4>{(zone.lineMode || 'single') === 'double' ? 'Line 1' : 'Text'}</h4>
         
         <div className="form-group">
@@ -238,6 +270,29 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
               ))}
             </select>
           </div>
+        </div>
+      )}
+        </>
+      )}
+
+      {/* Infographics Information */}
+      {(zone.displayMode || 'text') === 'infographics' && (
+        <div className="infographics-section">
+          <h4>Infographics Mode</h4>
+          <p className="infographics-description">
+            This zone will automatically display rotating infographics including:
+          </p>
+          <ul className="infographics-list">
+            <li>🌤️ Weather and temperature in Paris</li>
+            <li>🧹 Facility cleanliness reminders (FR/EN)</li>
+            <li>💧 Hydration reminders (FR/EN)</li>
+            <li>🎮 Upcoming Gentle Mates matches</li>
+            <li>🎂 Player birthdays and anniversaries</li>
+          </ul>
+          <p className="infographics-note">
+            <strong>Note:</strong> Text and line settings are disabled in infographics mode. 
+            Only background, speed, and color settings apply.
+          </p>
         </div>
       )}
 

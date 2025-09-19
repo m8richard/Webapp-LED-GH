@@ -83,6 +83,12 @@ export const AVAILABLE_FONTS: FontConfig[] = [
     displayName: 'Romanesco Regular',
     url: 'https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/5-%20Fonts/Romanesco%20Regular%20Font%20(1).ttf',
     format: 'truetype'
+  },
+  {
+    name: '10PixelBold',
+    displayName: '10Pixel Bold',
+    url: 'https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/5-%20Fonts/Other/10Pixel-Bold.otf',
+    format: 'opentype'
   }
 ]
 
