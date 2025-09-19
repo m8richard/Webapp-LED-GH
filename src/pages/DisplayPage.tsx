@@ -69,7 +69,7 @@ const DisplayPage = () => {
     }
   }, [])
 
-  // Fallback polling for OBS compatibility (every 5 seconds)
+  // Smart polling fallback for OBS compatibility
   useEffect(() => {
     const pollForUpdates = async () => {
       try {
@@ -79,8 +79,10 @@ const DisplayPage = () => {
           .eq('is_active', true)
           .single()
 
+        // Only refresh if we have a previous timestamp AND it has actually changed
         if (!error && data && lastUpdateTime && data.updated_at !== lastUpdateTime) {
-          console.log('Update detected via polling, refreshing...')
+          console.log(`Change detected: ${lastUpdateTime} → ${data.updated_at}`)
+          console.log('Refreshing page to load new content...')
           window.location.reload()
         }
       } catch (err) {
@@ -88,26 +90,13 @@ const DisplayPage = () => {
       }
     }
 
-    const interval = setInterval(pollForUpdates, 5000) // Poll every 5 seconds
-    
-    return () => clearInterval(interval)
-  }, [lastUpdateTime])
-
-  // Check URL parameters for refresh control
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const autoRefresh = urlParams.get('autoRefresh')
-    const refreshInterval = parseInt(urlParams.get('refreshInterval') || '10')
-    
-    if (autoRefresh === 'true') {
-      console.log(`Auto-refresh enabled: every ${refreshInterval} seconds`)
-      const interval = setInterval(() => {
-        window.location.reload()
-      }, refreshInterval * 1000)
-      
+    // Only start polling if we have an initial timestamp to compare against
+    if (lastUpdateTime) {
+      const interval = setInterval(pollForUpdates, 3000) // Poll every 3 seconds
       return () => clearInterval(interval)
     }
-  }, [])
+  }, [lastUpdateTime])
+
 
   return <LiveDisplayCanvas zones={activeProfile?.zones_data} />
 }
