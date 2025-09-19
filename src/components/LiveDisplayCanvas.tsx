@@ -216,7 +216,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
 
       const fontSize = 36
       const elementSpacing = 150 // Space between different elements
-      const infographicsFont = '10PixelBold' // Force pixel font for infographics
+      const infographicsFont = 'VCR_OSD_MONO' // Use VCR font for infographics
       
       ctx.save()
       ctx.beginPath()
@@ -349,7 +349,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
 
       const fontSize = 32
       const elementSpacing = 200 // Space between different players
-      const cs2Font = '10PixelBold' // Force pixel font for CS2 mode
+      const cs2Font = 'VCR_OSD_MONO' // Use VCR font for CS2 mode
       
       ctx.save()
       ctx.beginPath()

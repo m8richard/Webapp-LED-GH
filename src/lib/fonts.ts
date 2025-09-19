@@ -89,6 +89,12 @@ export const AVAILABLE_FONTS: FontConfig[] = [
     displayName: '10Pixel Bold',
     url: 'https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/5-%20Fonts/Other/10Pixel-Bold.otf',
     format: 'opentype'
+  },
+  {
+    name: 'VCR_OSD_MONO',
+    displayName: 'VCR OSD Mono',
+    url: 'https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/5-%20Fonts/Other/VCR_OSD_MONO_1.001.ttf',
+    format: 'truetype'
   }
 ]
 
