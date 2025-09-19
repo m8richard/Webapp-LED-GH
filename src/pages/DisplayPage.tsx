@@ -5,6 +5,7 @@ import LiveDisplayCanvas from '../components/LiveDisplayCanvas'
 const DisplayPage = () => {
   const [activeProfile, setActiveProfile] = useState<BannerProfile | null>(null)
   const [, setLoading] = useState(true)
+  const [lastUpdateTime, setLastUpdateTime] = useState<string | null>(null)
 
   // Remove body margins for full screen display
   useEffect(() => {
@@ -34,6 +35,7 @@ const DisplayPage = () => {
           console.error('Error fetching active profile:', error)
         } else {
           setActiveProfile(data)
+          setLastUpdateTime(data?.updated_at || null)
         }
       } catch (err) {
         console.error('Failed to fetch active profile:', err)
@@ -55,13 +57,55 @@ const DisplayPage = () => {
       }, (payload) => {
         console.log('Active profile changed:', payload)
         if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-          setActiveProfile(payload.new as BannerProfile)
+          const newProfile = payload.new as BannerProfile
+          setActiveProfile(newProfile)
+          setLastUpdateTime(newProfile.updated_at)
         }
       })
       .subscribe()
 
     return () => {
       subscription.unsubscribe()
+    }
+  }, [])
+
+  // Fallback polling for OBS compatibility (every 5 seconds)
+  useEffect(() => {
+    const pollForUpdates = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('led_banner_settings')
+          .select('updated_at')
+          .eq('is_active', true)
+          .single()
+
+        if (!error && data && lastUpdateTime && data.updated_at !== lastUpdateTime) {
+          console.log('Update detected via polling, refreshing...')
+          window.location.reload()
+        }
+      } catch (err) {
+        console.error('Polling error:', err)
+      }
+    }
+
+    const interval = setInterval(pollForUpdates, 5000) // Poll every 5 seconds
+    
+    return () => clearInterval(interval)
+  }, [lastUpdateTime])
+
+  // Check URL parameters for refresh control
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const autoRefresh = urlParams.get('autoRefresh')
+    const refreshInterval = parseInt(urlParams.get('refreshInterval') || '10')
+    
+    if (autoRefresh === 'true') {
+      console.log(`Auto-refresh enabled: every ${refreshInterval} seconds`)
+      const interval = setInterval(() => {
+        window.location.reload()
+      }, refreshInterval * 1000)
+      
+      return () => clearInterval(interval)
     }
   }, [])
 
