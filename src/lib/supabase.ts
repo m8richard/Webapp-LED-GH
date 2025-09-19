@@ -39,7 +39,7 @@ export interface Zone {
   backgroundUrl?: string
   backgroundMode?: 'contain' | 'cover' | 'fill' | 'stretch' // defaults to 'contain'
   font?: string // defaults to 'HelveticaBoldExtended'
-  displayMode?: 'text' | 'infographics' // defaults to 'text'
+  displayMode?: 'text' | 'infographics' | 'cs2-data' // defaults to 'text'
 }
 
 // Helper functions

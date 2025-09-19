@@ -22,7 +22,7 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
               name={`displayMode-${zone.id}`}
               value="text"
               checked={(zone.displayMode || 'text') === 'text'}
-              onChange={(e) => onUpdate({ displayMode: e.target.value as 'text' | 'infographics' })}
+              onChange={(e) => onUpdate({ displayMode: e.target.value as 'text' | 'infographics' | 'cs2-data' })}
             />
             Text Mode
           </label>
@@ -32,9 +32,19 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
               name={`displayMode-${zone.id}`}
               value="infographics"
               checked={(zone.displayMode || 'text') === 'infographics'}
-              onChange={(e) => onUpdate({ displayMode: e.target.value as 'text' | 'infographics' })}
+              onChange={(e) => onUpdate({ displayMode: e.target.value as 'text' | 'infographics' | 'cs2-data' })}
             />
             Infographics Mode
+          </label>
+          <label className="radio-label">
+            <input
+              type="radio"
+              name={`displayMode-${zone.id}`}
+              value="cs2-data"
+              checked={(zone.displayMode || 'text') === 'cs2-data'}
+              onChange={(e) => onUpdate({ displayMode: e.target.value as 'text' | 'infographics' | 'cs2-data' })}
+            />
+            CS2 Data Mode
           </label>
         </div>
       </div>
@@ -300,6 +310,72 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
               <input
                 type="range"
                 id={`infographics-speed-${zone.id}`}
+                min="0.5"
+                max="5"
+                step="0.1"
+                value={zone.speed}
+                onChange={(e) => onUpdate({ speed: parseFloat(e.target.value) })}
+                className="speed-slider"
+              />
+              <input
+                title="Scrolling Speed"
+                type="number"
+                min="0.5"
+                max="5"
+                step="0.1"
+                value={zone.speed}
+                onChange={(e) => onUpdate({ speed: parseFloat(e.target.value) })}
+                className="speed-number"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CS2 Data Information */}
+      {(zone.displayMode || 'text') === 'cs2-data' && (
+        <div className="infographics-section">
+          <h4>CS2 Data Mode</h4>
+          <p className="infographics-description">
+            This zone will automatically display CS2 player statistics including:
+          </p>
+          <ul className="infographics-list">
+            <li>👤 Player pseudonyms</li>
+            <li>📊 Monthly matches and win rates</li>
+            <li>📈 Weekly matches and win rates</li>
+            <li>🎮 Data from cs_player_stats table</li>
+          </ul>
+          <p className="infographics-note">
+            <strong>Note:</strong> Uses 10Pixel Bold font. Data is fetched live from the cs_player_stats table.
+            Format: "pseudo | Month: XM Y% | Week: XM Y%"
+          </p>
+          
+          <div className="form-group">
+            <label htmlFor={`cs2-data-color-${zone.id}`}>Text Color:</label>
+            <div className="color-input-group">
+              <input
+                type="color"
+                id={`cs2-data-color-${zone.id}`}
+                value={zone.color}
+                onChange={(e) => onUpdate({ color: e.target.value })}
+                className="color-picker"
+              />
+              <input
+                type="text"
+                value={zone.color}
+                onChange={(e) => onUpdate({ color: e.target.value })}
+                className="color-text"
+                placeholder="#ff00ec"
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor={`cs2-data-speed-${zone.id}`}>Scrolling Speed:</label>
+            <div className="speed-input-group">
+              <input
+                type="range"
+                id={`cs2-data-speed-${zone.id}`}
                 min="0.5"
                 max="5"
                 step="0.1"

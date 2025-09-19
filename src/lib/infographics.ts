@@ -236,6 +236,52 @@ export const getUpcomingMatches = async (limit: number = 5): Promise<{ match: Ma
   }
 }
 
+export interface CS2PlayerData {
+  player_id: string
+  pseudo: string
+  matches_month: number
+  winrate_month: number
+  matches_week: number
+  winrate_week: number
+}
+
+export const getCS2PlayerData = async (): Promise<CS2PlayerData[]> => {
+  try {
+    console.log('Attempting to fetch CS2 player data from cs_player_stats table...')
+    
+    // Import supabase from the main project (same as led_banner_settings)
+    const { supabase } = await import('./supabase')
+    
+    const { data: playerData, error } = await supabase
+      .from('cs_player_stats')
+      .select('player_id, pseudo, matches_month, winrate_month, matches_week, winrate_week')
+      .order('pseudo', { ascending: true })
+    
+    console.log('CS2 player data query result:', { data: playerData, error })
+    
+    if (error) {
+      console.error('Detailed error fetching CS2 player data:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return []
+    }
+    
+    if (!playerData || playerData.length === 0) {
+      console.warn('CS2 player data table is empty or returned no data')
+      return []
+    }
+    
+    console.log(`Successfully fetched ${playerData.length} CS2 player data records`)
+    return playerData
+  } catch (error) {
+    console.error('Exception while fetching CS2 player data:', error)
+    return []
+  }
+}
+
 export const getBirthdayInfo = async (): Promise<{ todayBirthdays: Player[], upcomingBirthdays: (Player & { daysUntil: number })[] }> => {
   try {
     const { data: players, error } = await gmSupabase

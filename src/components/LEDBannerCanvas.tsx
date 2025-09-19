@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Zone } from '../lib/supabase'
 import { loadAllFonts, getFontFamily } from '../lib/fonts'
-import { generateInfographicElements, InfographicElement } from '../lib/infographics'
+import { generateInfographicElements, InfographicElement, getCS2PlayerData, CS2PlayerData } from '../lib/infographics'
 import './LEDBannerCanvas.css'
 
 interface LEDBannerCanvasProps {
@@ -20,6 +20,7 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
   const currentInfographicRef = useRef<Record<number, number>>({})
   const infographicTimerRef = useRef<Record<number, number>>({})
   const logoImagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
+  const cs2PlayerDataRef = useRef<Record<number, CS2PlayerData[]>>({})
 
   const CANVAS_WIDTH = 1056
   const CANVAS_HEIGHT = 384
@@ -51,7 +52,24 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       }
     }
 
+    // Initialize CS2 player data for zones in CS2 data mode
+    const initializeCS2Data = async () => {
+      for (const zone of zones) {
+        if (zone.displayMode === 'cs2-data') {
+          try {
+            console.log('Initializing CS2 data for LEDBanner zone', zone.id)
+            const playerData = await getCS2PlayerData()
+            cs2PlayerDataRef.current[zone.id] = playerData
+            console.log('CS2 player data loaded for LEDBanner zone', zone.id, ':', playerData)
+          } catch (error) {
+            console.error(`Error initializing CS2 data for zone ${zone.id}:`, error)
+          }
+        }
+      }
+    }
+
     initializeInfographics()
+    initializeCS2Data()
 
     const loadBackgroundElement = (zone: Zone): Promise<HTMLImageElement | HTMLVideoElement | null> => {
       return new Promise((resolve) => {
@@ -313,6 +331,69 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       ctx.restore()
     }
 
+    const drawCS2Data = async (zone: Zone, yPosition: number, width: number, height: number, scrollOffset: number) => {
+      const playerData = cs2PlayerDataRef.current[zone.id]
+      console.log('DrawCS2Data called for LEDBanner zone', zone.id, 'with data:', playerData)
+      if (!playerData || playerData.length === 0) {
+        console.log('No CS2 player data available for LEDBanner zone', zone.id)
+        return
+      }
+
+      const fontSize = 32
+      const elementSpacing = 200 // Space between different players
+      const cs2Font = '10PixelBold' // Force pixel font for CS2 mode
+      
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, yPosition, width, height)
+      ctx.clip()
+      
+      // Calculate total carousel width
+      let totalCarouselWidth = 0
+      const playerDisplayData: { player: CS2PlayerData, width: number }[] = []
+      
+      for (const player of playerData) {
+        ctx.font = `bold ${fontSize}px ${getFontFamily(cs2Font)}`
+        // Format: "pseudo | This month: XM ranked games played, WR: Y% | This week: XM ranked games played, WR: Y%"
+        const playerText = `${player.pseudo} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}% | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
+        const textWidth = ctx.measureText(playerText).width
+        
+        playerDisplayData.push({ player, width: textWidth })
+        totalCarouselWidth += textWidth + elementSpacing
+      }
+      
+      // Draw all elements in sequence
+      const textY = yPosition + (height / 2) + (fontSize / 3)
+      let currentPosition = scrollOffset
+      
+      // Repeat the carousel to create seamless looping
+      const numRepeats = Math.ceil((width + Math.abs(scrollOffset)) / totalCarouselWidth) + 1
+      
+      for (let repeat = 0; repeat < numRepeats; repeat++) {
+        let elementX = currentPosition
+        
+        for (let i = 0; i < playerDisplayData.length; i++) {
+          const { player, width: playerWidth } = playerDisplayData[i]
+          
+          // Skip if element is completely off screen
+          if (elementX > width || elementX + playerWidth < 0) {
+            elementX += playerWidth + elementSpacing
+            continue
+          }
+          
+          ctx.fillStyle = zone.color
+          const playerText = `${player.pseudo} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}% | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
+          ctx.fillText(playerText, elementX, textY)
+          
+          elementX += playerWidth + elementSpacing
+        }
+        
+        currentPosition += totalCarouselWidth
+      }
+      
+      ctx.restore()
+    }
+
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
       const width = zone.id === 4 ? 864 : CANVAS_WIDTH // Zone 4 is smaller
       const currentZoneHeight = ZONE_HEIGHT
@@ -328,6 +409,12 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       // Handle infographics mode
       if (zone.displayMode === 'infographics') {
         await drawInfographics(zone, yPosition, width, currentZoneHeight, scrollOffset)
+        return
+      }
+      
+      // Handle CS2 data mode
+      if (zone.displayMode === 'cs2-data') {
+        await drawCS2Data(zone, yPosition, width, currentZoneHeight, scrollOffset)
         return
       }
       
@@ -444,11 +531,48 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
           // Update main line scroll offset
           scrollOffsetsRef.current[index] -= actualSpeed
           
+          // For infographics and CS2 data modes, normalize scroll offset to prevent carousel disappearing
+          if (zone.displayMode === 'infographics') {
+            const estimatedCarouselWidth = 3000
+            if (scrollOffsetsRef.current[index] < -estimatedCarouselWidth) {
+              scrollOffsetsRef.current[index] += estimatedCarouselWidth
+            }
+            if (scrollOffsetsRef.current[index] > estimatedCarouselWidth) {
+              scrollOffsetsRef.current[index] -= estimatedCarouselWidth
+            }
+          } else if (zone.displayMode === 'cs2-data') {
+            const cs2DataCarouselWidth = 4000
+            if (scrollOffsetsRef.current[index] < -cs2DataCarouselWidth) {
+              scrollOffsetsRef.current[index] += cs2DataCarouselWidth
+            }
+            if (scrollOffsetsRef.current[index] > cs2DataCarouselWidth) {
+              scrollOffsetsRef.current[index] -= cs2DataCarouselWidth
+            }
+          } else {
+            // For text mode, normalize based on a smaller cycle
+            const textCycleWidth = 2000
+            if (scrollOffsetsRef.current[index] < -textCycleWidth) {
+              scrollOffsetsRef.current[index] += textCycleWidth
+            }
+            if (scrollOffsetsRef.current[index] > textCycleWidth) {
+              scrollOffsetsRef.current[index] -= textCycleWidth
+            }
+          }
+          
           // Update sub-line scroll offset for double line mode
           if ((zone.lineMode || 'single') === 'double' && zone.subZone) {
             const subPixelsPerSecond = zone.subZone.speed * 60
             const subActualSpeed = (subPixelsPerSecond * deltaTime) / 1000
             subScrollOffsetsRef.current[index] -= subActualSpeed
+            
+            // Normalize sub-scroll offset too
+            const subTextCycleWidth = 2000
+            if (subScrollOffsetsRef.current[index] < -subTextCycleWidth) {
+              subScrollOffsetsRef.current[index] += subTextCycleWidth
+            }
+            if (subScrollOffsetsRef.current[index] > subTextCycleWidth) {
+              subScrollOffsetsRef.current[index] -= subTextCycleWidth
+            }
           }
         })
       }
