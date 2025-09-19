@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Zone } from '../lib/supabase'
+import { loadAllFonts, getFontFamily } from '../lib/fonts'
 import './LEDBannerCanvas.css'
 
 interface LEDBannerCanvasProps {
@@ -26,21 +27,8 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Load fonts
-    const fontFace1 = new FontFace(
-      'HelveticaNeue',
-      `url('https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/livedata-overlay/HelveticaNeueBold.ttf')`
-    )
-    
-    const fontFace2 = new FontFace(
-      'HelveticaBoldExtended',
-      `url('https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/livedata-overlay/HelveticaNeue-BlackExt.otf')`
-    )
-
-    Promise.all([fontFace1.load(), fontFace2.load()]).then(() => {
-      document.fonts.add(fontFace1)
-      document.fonts.add(fontFace2)
-    }).catch(console.error)
+    // Load all fonts
+    loadAllFonts().catch(console.error)
 
     const loadBackgroundElement = (zone: Zone): Promise<HTMLImageElement | HTMLVideoElement | null> => {
       return new Promise((resolve) => {
@@ -193,7 +181,7 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       if ((zone.lineMode || 'single') === 'single') {
         // Single line mode - text in center of zone
         const fontSize = 48
-        ctx.font = `bold ${fontSize}px 'HelveticaBoldExtended', 'HelveticaNeue', Arial, sans-serif`
+        ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
         ctx.fillStyle = zone.color
         
         const textWidth = ctx.measureText(zone.text).width
@@ -223,7 +211,7 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         const fontSize = 32 // Smaller font for two lines
         
         // Draw first line (top half)
-        ctx.font = `bold ${fontSize}px 'HelveticaBoldExtended', 'HelveticaNeue', Arial, sans-serif`
+        ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
         ctx.fillStyle = zone.color
         
         const textWidth1 = ctx.measureText(zone.text).width
@@ -247,6 +235,7 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         
         // Draw second line (bottom half) if subZone exists
         if (zone.subZone) {
+          ctx.font = `bold ${fontSize}px ${getFontFamily(zone.subZone.font)}`
           ctx.fillStyle = zone.subZone.color
           
           const textWidth2 = ctx.measureText(zone.subZone.text).width

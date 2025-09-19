@@ -1,4 +1,5 @@
 import { Zone } from '../lib/supabase'
+import { AVAILABLE_FONTS } from '../lib/fonts'
 import './ZoneEditor.css'
 
 interface ZoneEditorProps {
@@ -98,6 +99,22 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
             />
           </div>
         </div>
+        
+        <div className="form-group">
+          <label htmlFor={`font-${zone.id}`}>Font:</label>
+          <select 
+            id={`font-${zone.id}`}
+            value={zone.font || 'HelveticaBoldExtended'}
+            onChange={(e) => onUpdate({ font: e.target.value })}
+            className="font-select"
+          >
+            {AVAILABLE_FONTS.map(font => (
+              <option key={font.name} value={font.name}>
+                {font.displayName}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Second Line (only for double line mode) */}
@@ -196,6 +213,30 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
                 placeholder="Speed"
               />
             </div>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor={`subfont-${zone.id}`}>Font:</label>
+            <select 
+              id={`subfont-${zone.id}`}
+              value={zone.subZone?.font || 'HelveticaBoldExtended'}
+              onChange={(e) => onUpdate({ 
+                subZone: { 
+                  ...zone.subZone, 
+                  font: e.target.value,
+                  text: zone.subZone?.text || '',
+                  color: zone.subZone?.color || '#ff00ec',
+                  speed: zone.subZone?.speed || 2
+                } 
+              })}
+              className="font-select"
+            >
+              {AVAILABLE_FONTS.map(font => (
+                <option key={font.name} value={font.name}>
+                  {font.displayName}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       )}

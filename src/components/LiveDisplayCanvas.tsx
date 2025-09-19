@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Zone } from '../lib/supabase'
+import { loadAllFonts, getFontFamily } from '../lib/fonts'
 
 interface LiveDisplayCanvasProps {
   zones?: Zone[]
@@ -15,10 +16,10 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   const backgroundElementsRef = useRef<Map<string, HTMLImageElement | HTMLVideoElement>>(new Map())
   
   const defaultZones: Zone[] = [
-    { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' },
-    { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' },
-    { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' },
-    { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain' }
+    { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended' },
+    { id: 2, text: 'ZONE 2 👀', color: '#ff00ec', speed: 1.5, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended' },
+    { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended' },
+    { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended' }
   ]
 
   const zones = propZones || defaultZones
@@ -34,21 +35,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Load fonts
-    const fontFace1 = new FontFace(
-      'HelveticaNeue',
-      `url('https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/livedata-overlay/HelveticaNeueBold.ttf')`
-    )
-    
-    const fontFace2 = new FontFace(
-      'HelveticaBoldExtended',
-      `url('https://gmrxbbhhyyrtmsftofdp.supabase.co/storage/v1/object/public/gentle-mates-assets/livedata-overlay/HelveticaNeue-BlackExt.otf')`
-    )
-
-    Promise.all([fontFace1.load(), fontFace2.load()]).then(() => {
-      document.fonts.add(fontFace1)
-      document.fonts.add(fontFace2)
-    }).catch(console.error)
+    // Load all fonts
+    loadAllFonts().catch(console.error)
 
     const loadBackgroundElement = (zone: Zone): Promise<HTMLImageElement | HTMLVideoElement | null> => {
       return new Promise((resolve) => {
@@ -196,7 +184,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       if ((zone.lineMode || 'single') === 'single') {
         // Single line mode
         const fontSize = 48
-        ctx.font = `bold ${fontSize}px 'HelveticaBoldExtended', 'HelveticaNeue', Arial, sans-serif`
+        ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
         ctx.fillStyle = zone.color
         
         const textWidth = ctx.measureText(zone.text).width
@@ -225,7 +213,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         const fontSize = 32
         
         // First line
-        ctx.font = `bold ${fontSize}px 'HelveticaBoldExtended', 'HelveticaNeue', Arial, sans-serif`
+        ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
         ctx.fillStyle = zone.color
         
         const textWidth1 = ctx.measureText(zone.text).width
@@ -249,6 +237,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         
         // Second line
         if (zone.subZone) {
+          ctx.font = `bold ${fontSize}px ${getFontFamily(zone.subZone.font)}`
           ctx.fillStyle = zone.subZone.color
           
           const textWidth2 = ctx.measureText(zone.subZone.text).width

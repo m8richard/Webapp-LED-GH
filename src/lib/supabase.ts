@@ -24,6 +24,7 @@ export interface SubZone {
   text: string
   color: string
   speed: number
+  font?: string
 }
 
 export interface Zone {
@@ -37,6 +38,7 @@ export interface Zone {
   backgroundType?: 'none' | 'image' | 'video' // defaults to 'none'
   backgroundUrl?: string
   backgroundMode?: 'contain' | 'cover' | 'fill' | 'stretch' // defaults to 'contain'
+  font?: string // defaults to 'HelveticaBoldExtended'
 }
 
 // Helper functions
