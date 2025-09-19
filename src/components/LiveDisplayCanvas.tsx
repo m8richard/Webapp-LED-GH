@@ -233,11 +233,14 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         let textWidth = 0
         if (element.type === 'match' && element.customData) {
           // For matches with custom data, measure both lines and use the wider one
-          const matchInfoWidth = ctx.measureText(element.customData.matchInfo || '').width
-          const dateInfoWidth = ctx.measureText(element.customData.dateInfo || '').width
+          const matchInfo = zone.forceUppercase ? (element.customData.matchInfo || '').toUpperCase() : (element.customData.matchInfo || '')
+          const dateInfo = zone.forceUppercase ? (element.customData.dateInfo || '').toUpperCase() : (element.customData.dateInfo || '')
+          const matchInfoWidth = ctx.measureText(matchInfo).width
+          const dateInfoWidth = ctx.measureText(dateInfo).width
           textWidth = Math.max(matchInfoWidth, dateInfoWidth)
         } else {
-          textWidth = ctx.measureText(element.content).width
+          const content = zone.forceUppercase ? element.content.toUpperCase() : element.content
+          textWidth = ctx.measureText(content).width
         }
         
         let logoWidth = 0
@@ -323,11 +326,14 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
             const matchY = yPosition + (height / 2) - (lineHeight / 4)
             const dateY = matchY + lineHeight
             
-            ctx.fillText(element.customData.matchInfo || '', drawX, matchY)
-            ctx.fillText(element.customData.dateInfo || '', drawX, dateY)
+            const matchText = zone.forceUppercase ? (element.customData.matchInfo || '').toUpperCase() : (element.customData.matchInfo || '')
+            const dateText = zone.forceUppercase ? (element.customData.dateInfo || '').toUpperCase() : (element.customData.dateInfo || '')
+            ctx.fillText(matchText, drawX, matchY)
+            ctx.fillText(dateText, drawX, dateY)
           } else {
             // Single line rendering
-            ctx.fillText(element.content, drawX, textY)
+            const elementText = zone.forceUppercase ? element.content.toUpperCase() : element.content
+            ctx.fillText(elementText, drawX, textY)
           }
           
           elementX += elementWidth + elementSpacing
@@ -364,7 +370,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         ctx.font = `bold ${fontSize}px ${getFontFamily(cs2Font)}`
         // Format: "pseudo | Month: XM Y% | Week: XM Y%"
         const playerText = `${player.pseudo} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}% | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
-        const textWidth = ctx.measureText(playerText).width
+        const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
+        const textWidth = ctx.measureText(displayText).width
         
         playerDisplayData.push({ player, width: textWidth })
         totalCarouselWidth += textWidth + elementSpacing
@@ -391,7 +398,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           
           ctx.fillStyle = zone.color
           const playerText = `${player.pseudo} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}% | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
-          ctx.fillText(playerText, elementX, textY)
+          const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
+          ctx.fillText(displayText, elementX, textY)
           
           elementX += playerWidth + elementSpacing
         }
@@ -427,7 +435,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
         ctx.fillStyle = zone.color
         
-        const textWidth = ctx.measureText(zone.text).width
+        const displayText = zone.forceUppercase ? zone.text.toUpperCase() : zone.text
+        const textWidth = ctx.measureText(displayText).width
         const spacing = 50
         const totalWidth = textWidth + spacing
         const textY = yPosition + (currentZoneHeight / 2) + (fontSize / 3)
@@ -443,7 +452,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         
         // Draw text instances from right to left to fill the entire width
         for (let currentX = startX; currentX > scrollOffset - totalWidth; currentX -= totalWidth) {
-          ctx.fillText(zone.text, currentX, textY)
+          const displayText = zone.forceUppercase ? zone.text.toUpperCase() : zone.text
+          ctx.fillText(displayText, currentX, textY)
         }
         
         ctx.restore()
@@ -456,7 +466,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
         ctx.fillStyle = zone.color
         
-        const textWidth1 = ctx.measureText(zone.text).width
+        const displayText1 = zone.forceUppercase ? zone.text.toUpperCase() : zone.text
+        const textWidth1 = ctx.measureText(displayText1).width
         const spacing1 = 40
         const totalWidth1 = textWidth1 + spacing1
         const textY1 = yPosition + (subZoneHeight / 2) + (fontSize / 3)
@@ -470,7 +481,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         let startX1 = Math.ceil((width - scrollOffset) / totalWidth1) * totalWidth1 + scrollOffset
         
         for (let currentX1 = startX1; currentX1 > scrollOffset - totalWidth1; currentX1 -= totalWidth1) {
-          ctx.fillText(zone.text, currentX1, textY1)
+          const displayText = zone.forceUppercase ? zone.text.toUpperCase() : zone.text
+          ctx.fillText(displayText, currentX1, textY1)
         }
         
         ctx.restore()
@@ -480,7 +492,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           ctx.font = `bold ${fontSize}px ${getFontFamily(zone.subZone.font)}`
           ctx.fillStyle = zone.subZone.color
           
-          const textWidth2 = ctx.measureText(zone.subZone.text).width
+          const displayText2 = zone.forceUppercase ? zone.subZone.text.toUpperCase() : zone.subZone.text
+          const textWidth2 = ctx.measureText(displayText2).width
           const spacing2 = 40
           const totalWidth2 = textWidth2 + spacing2
           const textY2 = yPosition + subZoneHeight + (subZoneHeight / 2) + (fontSize / 3)
@@ -494,7 +507,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           let startX2 = Math.ceil((width - subScrollOffset) / totalWidth2) * totalWidth2 + subScrollOffset
           
           for (let currentX2 = startX2; currentX2 > subScrollOffset - totalWidth2; currentX2 -= totalWidth2) {
-            ctx.fillText(zone.subZone.text, currentX2, textY2)
+            const displayText = zone.forceUppercase ? zone.subZone.text.toUpperCase() : zone.subZone.text
+            ctx.fillText(displayText, currentX2, textY2)
           }
           
           ctx.restore()

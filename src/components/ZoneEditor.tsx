@@ -49,6 +49,21 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
         </div>
       </div>
 
+      {/* Force Uppercase Toggle */}
+      <div className="form-group">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={zone.forceUppercase || false}
+            onChange={(e) => onUpdate({ forceUppercase: e.target.checked })}
+          />
+          Force Uppercase
+        </label>
+        <small className="mode-description">
+          When enabled, all text will be displayed in uppercase letters
+        </small>
+      </div>
+
       {/* Line Mode Selection - Only show in text mode */}
       {(zone.displayMode || 'text') === 'text' && (
         <div className="form-group">
