@@ -547,18 +547,26 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   }, [zones, isAnimating])
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={CANVAS_WIDTH}
-      height={CANVAS_HEIGHT}
-      style={{ 
-        display: 'block',
-        background: '#000',
-        width: '100vw',
-        height: '100vh',
-        objectFit: 'contain'
-      }}
-    />
+    <div style={{ 
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'flex-start',
+      width: '100vw',
+      height: '100vh',
+      background: '#000'
+    }}>
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        style={{ 
+          display: 'block',
+          background: '#000',
+          width: `${CANVAS_WIDTH}px`,
+          height: `${CANVAS_HEIGHT}px`
+        }}
+      />
+    </div>
   )
 }
 
