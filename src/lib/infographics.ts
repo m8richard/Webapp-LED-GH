@@ -98,7 +98,7 @@ export const get3DayWeatherForecast = async (): Promise<DailyWeatherData[]> => {
       } else if (i === 1) {
         formattedDate = "Demain :"
       } else {
-        formattedDate = date.toLocaleDateString('fr-FR', dateOptions)
+        formattedDate = date.toLocaleDateString('fr-FR', dateOptions) + " :"
       }
       
       forecasts.push({
@@ -338,7 +338,7 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
       elements.push({
         id: `weather-day-${index}`,
         type: 'weather',
-        content: `Paris ${forecast.date} ${forecast.icon} ${forecast.tempMin}°/${forecast.tempMax}°C`,
+        content: `Paris - ${forecast.date} ${forecast.icon} ${forecast.tempMin}°/${forecast.tempMax}°C`,
         color: '#00BFFF',
         duration: 4000
       })
