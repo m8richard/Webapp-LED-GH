@@ -217,32 +217,35 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       
       // Calculate total carousel width
       let totalCarouselWidth = 0
-      const elementData: { element: InfographicElement, width: number, logoWidth: number }[] = []
+      const elementData: { element: InfographicElement, width: number, logoWidth: number, iconWidth: number }[] = []
       
       for (const element of elements) {
         ctx.font = `bold ${fontSize}px ${getFontFamily(infographicsFont)}`
         
         let textWidth = 0
-        if (element.type === 'match' && element.customData) {
-          // For matches with custom data, measure both lines and use the wider one
-          const matchInfo = zone.forceUppercase ? (element.customData.matchInfo || '').toUpperCase() : (element.customData.matchInfo || '')
-          const dateInfo = zone.forceUppercase ? (element.customData.dateInfo || '').toUpperCase() : (element.customData.dateInfo || '')
-          const matchInfoWidth = ctx.measureText(matchInfo).width
-          const dateInfoWidth = ctx.measureText(dateInfo).width
-          textWidth = Math.max(matchInfoWidth, dateInfoWidth)
+        if (element.customData && element.customData.matchInfo && element.customData.dateInfo) {
+          // For elements with custom data, measure both lines and use the wider one
+          const line1Text = zone.forceUppercase ? (element.customData.matchInfo || '').toUpperCase() : (element.customData.matchInfo || '')
+          const line2Text = zone.forceUppercase ? (element.customData.dateInfo || '').toUpperCase() : (element.customData.dateInfo || '')
+          const line1Width = ctx.measureText(line1Text).width
+          const line2Width = ctx.measureText(line2Text).width
+          textWidth = Math.max(line1Width, line2Width)
         } else {
           const content = zone.forceUppercase ? element.content.toUpperCase() : element.content
           textWidth = ctx.measureText(content).width
         }
         
         let logoWidth = 0
+        let iconWidth = 0
+        
+        // Handle custom images (like Volvic bottle)
         if (element.imageUrl) {
           const logoImg = logoImagesRef.current.get(element.imageUrl)
           if (logoImg && logoImg.complete) {
-            // Maintain aspect ratio with max width constraint
-            const logoHeight = height * 0.7 // 70% of zone height
+            // For two-line elements, use more of the zone height
+            const logoHeight = element.customData ? height * 0.8 : height * 0.7
             const calculatedWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
-            logoWidth = Math.min(calculatedWidth, 200) // Max width 200px
+            logoWidth = Math.min(calculatedWidth, 150) // Slightly smaller max width for two-line
           } else if (!logoImagesRef.current.has(element.imageUrl)) {
             // Load image if not in cache
             const newImg = new Image()
@@ -254,15 +257,27 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
               console.error('Failed to load logo:', element.imageUrl)
             }
             newImg.src = element.imageUrl
-            logoWidth = 100 // Reserve space while loading
+            logoWidth = 80 // Reserve space while loading
           } else {
-            logoWidth = 100 // Reserve space while loading
+            logoWidth = 80 // Reserve space while loading
           }
         }
+        // Handle icon emojis (separate from images)
+        else if (element.icon) {
+          // Measure emoji width at larger size for two-line elements
+          const iconFontSize = element.customData ? fontSize * 1.5 : fontSize
+          ctx.font = `${iconFontSize}px ${getFontFamily(infographicsFont)}`
+          iconWidth = ctx.measureText(element.icon).width
+          // Reset font for text measurement
+          ctx.font = `bold ${fontSize}px ${getFontFamily(infographicsFont)}`
+        }
         
-        const logoSpacing = logoWidth > 0 ? 20 : 0
-        const elementWidth = logoWidth + logoSpacing + textWidth
-        elementData.push({ element, width: elementWidth, logoWidth })
+        const imageSpacing = logoWidth > 0 ? 20 : 0
+        const iconSpacing = iconWidth > 0 ? 15 : 0
+        const totalImageIconWidth = logoWidth + iconWidth
+        const totalSpacing = imageSpacing + iconSpacing
+        const elementWidth = totalImageIconWidth + totalSpacing + textWidth
+        elementData.push({ element, width: elementWidth, logoWidth, iconWidth })
         totalCarouselWidth += elementWidth + elementSpacing
       }
       
@@ -277,7 +292,7 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         let elementX = currentPosition
         
         for (let i = 0; i < elementData.length; i++) {
-          const { element, width: elementWidth, logoWidth } = elementData[i]
+          const { element, width: elementWidth, logoWidth, iconWidth } = elementData[i]
           
           // Skip if element is completely off screen
           if (elementX > width || elementX + elementWidth < 0) {
@@ -288,14 +303,15 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
           ctx.fillStyle = element.color || zone.color
           let drawX = elementX
           
-          // Draw logo if available
+          // Draw custom image (like Volvic bottle) if available
           if (element.imageUrl && logoWidth > 0) {
             try {
               const logoImg = logoImagesRef.current.get(element.imageUrl)
               if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-                const logoHeight = height * 0.7
+                // For two-line elements, use more height
+                const logoHeight = element.customData ? height * 0.8 : height * 0.7
                 const calculatedWidth = (logoImg.naturalWidth / logoImg.naturalHeight) * logoHeight
-                const actualLogoWidth = Math.min(calculatedWidth, 200) // Max width 200px
+                const actualLogoWidth = Math.min(calculatedWidth, 150) // Max width for two-line
                 // Calculate height to maintain aspect ratio if width was constrained
                 const actualLogoHeight = actualLogoWidth < calculatedWidth 
                   ? (logoImg.naturalHeight / logoImg.naturalWidth) * actualLogoWidth 
@@ -309,19 +325,43 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
             }
           }
           
+          // Draw icon emoji if available (separate from images)
+          else if (element.icon && iconWidth > 0) {
+            const iconFontSize = element.customData ? fontSize * 1.5 : fontSize
+            ctx.font = `${iconFontSize}px ${getFontFamily(infographicsFont)}`
+            
+            // Center the icon vertically for both single and two-line elements
+            const iconY = yPosition + (height / 2) + (iconFontSize / 3)
+            ctx.fillText(element.icon, drawX, iconY)
+            drawX += iconWidth + 15
+            
+            // Reset font for text
+            ctx.font = `bold ${fontSize}px ${getFontFamily(infographicsFont)}`
+          }
+          
           // Draw text
           ctx.font = `bold ${fontSize}px ${getFontFamily(infographicsFont)}`
           
-          if (element.type === 'match' && element.customData) {
-            // Multi-line rendering for matches
-            const lineHeight = fontSize * 1.2
-            const matchY = yPosition + (height / 2) - (lineHeight / 4)
-            const dateY = matchY + lineHeight
+          if (element.customData && element.customData.matchInfo && element.customData.dateInfo) {
+            // Multi-line rendering for all elements with customData
+            const lineHeight = fontSize * 1.1 // Slightly tighter spacing for zone constraints
+            const totalTextHeight = lineHeight * 2
             
-            const matchText = zone.forceUppercase ? (element.customData.matchInfo || '').toUpperCase() : (element.customData.matchInfo || '')
-            const dateText = zone.forceUppercase ? (element.customData.dateInfo || '').toUpperCase() : (element.customData.dateInfo || '')
-            ctx.fillText(matchText, drawX, matchY)
-            ctx.fillText(dateText, drawX, dateY)
+            // Center both lines within the zone height
+            const startY = yPosition + (height - totalTextHeight) / 2 + fontSize
+            const line1Y = startY
+            const line2Y = startY + lineHeight
+            
+            // Ensure lines don't exceed zone boundaries
+            const maxY = yPosition + height - 10 // 10px margin from bottom
+            const adjustedLine1Y = Math.min(line1Y, maxY - lineHeight)
+            const adjustedLine2Y = Math.min(line2Y, maxY)
+            
+            const line1Text = zone.forceUppercase ? (element.customData.matchInfo || '').toUpperCase() : (element.customData.matchInfo || '')
+            const line2Text = zone.forceUppercase ? (element.customData.dateInfo || '').toUpperCase() : (element.customData.dateInfo || '')
+            
+            ctx.fillText(line1Text, drawX, adjustedLine1Y)
+            ctx.fillText(line2Text, drawX, adjustedLine2Y)
           } else {
             // Single line rendering
             const elementText = zone.forceUppercase ? element.content.toUpperCase() : element.content
@@ -359,7 +399,7 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       
       for (const player of playerData) {
         ctx.font = `bold ${fontSize}px ${getFontFamily(cs2Font)}`
-        // Format: "pseudo | This month: XM ranked games played, WR: Y% | This week: XM ranked games played, WR: Y%"
+        // Format: "pseudo | Month: XM Y% | Week: XM Y%"
         const playerText = `${player.pseudo} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}% | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
         const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
         const textWidth = ctx.measureText(displayText).width
@@ -407,11 +447,6 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       
       // Always draw background first
       await drawBackground(zone, 0, yPosition, width, currentZoneHeight)
-      
-      // Draw zone border
-      ctx.strokeStyle = '#333333'
-      ctx.lineWidth = 2
-      ctx.strokeRect(0, yPosition, width, currentZoneHeight)
 
       // Handle infographics mode
       if (zone.displayMode === 'infographics') {
@@ -544,48 +579,11 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
           // Update main line scroll offset
           scrollOffsetsRef.current[index] -= actualSpeed
           
-          // For infographics and CS2 data modes, normalize scroll offset to prevent carousel disappearing
-          if (zone.displayMode === 'infographics') {
-            const estimatedCarouselWidth = 3000
-            if (scrollOffsetsRef.current[index] < -estimatedCarouselWidth) {
-              scrollOffsetsRef.current[index] += estimatedCarouselWidth
-            }
-            if (scrollOffsetsRef.current[index] > estimatedCarouselWidth) {
-              scrollOffsetsRef.current[index] -= estimatedCarouselWidth
-            }
-          } else if (zone.displayMode === 'cs2-data') {
-            const cs2DataCarouselWidth = 4000
-            if (scrollOffsetsRef.current[index] < -cs2DataCarouselWidth) {
-              scrollOffsetsRef.current[index] += cs2DataCarouselWidth
-            }
-            if (scrollOffsetsRef.current[index] > cs2DataCarouselWidth) {
-              scrollOffsetsRef.current[index] -= cs2DataCarouselWidth
-            }
-          } else {
-            // For text mode, normalize based on a smaller cycle
-            const textCycleWidth = 2000
-            if (scrollOffsetsRef.current[index] < -textCycleWidth) {
-              scrollOffsetsRef.current[index] += textCycleWidth
-            }
-            if (scrollOffsetsRef.current[index] > textCycleWidth) {
-              scrollOffsetsRef.current[index] -= textCycleWidth
-            }
-          }
-          
           // Update sub-line scroll offset for double line mode
           if ((zone.lineMode || 'single') === 'double' && zone.subZone) {
             const subPixelsPerSecond = zone.subZone.speed * 60
             const subActualSpeed = (subPixelsPerSecond * deltaTime) / 1000
             subScrollOffsetsRef.current[index] -= subActualSpeed
-            
-            // Normalize sub-scroll offset too
-            const subTextCycleWidth = 2000
-            if (subScrollOffsetsRef.current[index] < -subTextCycleWidth) {
-              subScrollOffsetsRef.current[index] += subTextCycleWidth
-            }
-            if (subScrollOffsetsRef.current[index] > subTextCycleWidth) {
-              subScrollOffsetsRef.current[index] -= subTextCycleWidth
-            }
           }
         })
       }
