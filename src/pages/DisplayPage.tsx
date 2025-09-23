@@ -46,7 +46,29 @@ const DisplayPage = () => {
 
     fetchActiveProfile()
 
+    // Test if we can read cs_player_stats table
+    const testCS2Access = async () => {
+      try {
+        console.log('🧪 Testing access to cs_player_stats table...')
+        const { data, error } = await supabase
+          .from('cs_player_stats')
+          .select('*')
+          .limit(1)
+        
+        if (error) {
+          console.error('❌ Cannot access cs_player_stats:', error)
+        } else {
+          console.log('✅ cs_player_stats accessible, sample data:', data)
+        }
+      } catch (err) {
+        console.error('❌ Exception accessing cs_player_stats:', err)
+      }
+    }
+
+    testCS2Access()
+
     // Subscribe to changes in active profile
+    console.log('Setting up real-time subscriptions...')
     const subscription = supabase
       .channel('led_banner_changes')
       .on('postgres_changes', {
@@ -62,12 +84,45 @@ const DisplayPage = () => {
           setLastUpdateTime(newProfile.updated_at)
         }
       })
-      .subscribe()
+      .subscribe((status, err) => {
+        console.log('📡 Banner subscription status:', status)
+        if (err) {
+          console.error('❌ Banner subscription error:', err)
+        }
+      })
+
+    // Separate subscription for CS2 player stats to avoid conflicts
+    console.log('Setting up CS2 stats subscription...')
+    const cs2Subscription = supabase
+      .channel('cs2_stats_changes') // Different channel name
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'cs_player_stats'
+      }, (payload) => {
+        console.log('🎯 CS2 player stats changed - FULL PAYLOAD:', JSON.stringify(payload, null, 2))
+        console.log('🎯 Event type:', payload.eventType)
+        console.log('🎯 Table:', payload.table)
+        console.log('🎯 Schema:', payload.schema)
+        console.log('🔄 CS2 stats updated, refreshing display...')
+        window.location.reload()
+      })
+      .subscribe((status, err) => {
+        console.log('📡 CS2 subscription status:', status)
+        if (err) {
+          console.error('❌ CS2 subscription error:', err)
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ CS2 subscription active')
+        }
+      })
 
     return () => {
       subscription.unsubscribe()
+      cs2Subscription.unsubscribe()
     }
   }, [])
+
 
   // Smart polling fallback for OBS compatibility
   useEffect(() => {

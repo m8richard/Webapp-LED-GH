@@ -339,7 +339,6 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
 
     const drawCS2Data = async (zone: Zone, yPosition: number, width: number, height: number, scrollOffset: number) => {
       const playerData = cs2PlayerDataRef.current[zone.id]
-      console.log('DrawCS2Data called for LEDBanner zone', zone.id, 'with data:', playerData)
       if (!playerData || playerData.length === 0) {
         console.log('No CS2 player data available for LEDBanner zone', zone.id)
         return
