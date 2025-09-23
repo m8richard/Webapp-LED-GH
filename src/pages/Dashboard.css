@@ -322,12 +322,61 @@
   grid-template-columns: 1fr 400px;
   gap: 30px;
   margin-top: 25px;
+  height: 70vh;
+  min-height: 600px;
 }
 
-.preview-section h3, .zones-section h3 {
+.zones-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.zones-section h3 {
   margin: 0 0 20px 0;
   color: #333;
   font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.zones-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.zones-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.zones-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.zones-scroll-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.zones-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.preview-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-section h3 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 /* Active Display Section */

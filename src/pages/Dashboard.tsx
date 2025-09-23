@@ -302,13 +302,15 @@ const Dashboard = () => {
                   
                   <div className="zones-section">
                     <h3>Zone Configuration</h3>
-                    {currentZones.map(zone => (
-                      <ZoneEditor 
-                        key={zone.id} 
-                        zone={zone} 
-                        onUpdate={(updates) => updateZone(zone.id, updates)}
-                      />
-                    ))}
+                    <div className="zones-scroll-container">
+                      {currentZones.map(zone => (
+                        <ZoneEditor 
+                          key={zone.id} 
+                          zone={zone} 
+                          onUpdate={(updates) => updateZone(zone.id, updates)}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
