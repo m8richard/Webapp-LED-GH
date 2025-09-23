@@ -152,6 +152,39 @@ const DisplayPage = () => {
     }
   }, [lastUpdateTime])
 
+  // Daily auto-refresh at midnight for fresh weather data and birthdays
+  useEffect(() => {
+    const scheduleMidnightRefresh = () => {
+      const now = new Date()
+      const midnight = new Date()
+      midnight.setHours(24, 0, 1, 0) // Next day at 00:00:01
+      
+      const timeUntilMidnight = midnight.getTime() - now.getTime()
+      
+      console.log(`⏰ Scheduling midnight refresh in ${Math.round(timeUntilMidnight / 1000 / 60)} minutes`)
+      
+      const timeoutId = setTimeout(() => {
+        console.log('🌅 Midnight refresh triggered - refreshing for new day data...')
+        window.location.reload()
+      }, timeUntilMidnight)
+      
+      return timeoutId
+    }
+
+    // Schedule the first midnight refresh
+    const timeoutId = scheduleMidnightRefresh()
+    
+    // Set up daily interval (every 24 hours) starting from the first midnight
+    const intervalId = setInterval(() => {
+      console.log('🌅 Daily midnight refresh - refreshing for new day data...')
+      window.location.reload()
+    }, 24 * 60 * 60 * 1000) // 24 hours
+
+    return () => {
+      clearTimeout(timeoutId)
+      clearInterval(intervalId)
+    }
+  }, [])
 
   return <LiveDisplayCanvas zones={activeProfile?.zones_data} />
 }
