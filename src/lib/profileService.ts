@@ -16,6 +16,20 @@ export class ProfileService {
     return data || []
   }
 
+  static async getAllProfiles(): Promise<BannerProfile[]> {
+    const { data, error } = await supabase
+      .from('led_banner_settings')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching all profiles:', error)
+      throw error
+    }
+
+    return data || []
+  }
+
   static async saveProfile(userEmail: string, profileName: string, zones: Zone[]): Promise<BannerProfile> {
     const { data, error } = await supabase
       .from('led_banner_settings')
@@ -38,6 +52,26 @@ export class ProfileService {
     return data
   }
 
+  static async updateProfileById(profileId: string, profileName: string, zones: Zone[]): Promise<BannerProfile> {
+    const { data, error } = await supabase
+      .from('led_banner_settings')
+      .update({
+        profile_name: profileName,
+        zones_data: zones,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', profileId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating profile:', error)
+      throw error
+    }
+
+    return data
+  }
+
   static async deleteProfile(userEmail: string, profileName: string): Promise<void> {
     const { error } = await supabase
       .from('led_banner_settings')
@@ -53,7 +87,7 @@ export class ProfileService {
 
   static async activateProfile(profileId: string): Promise<void> {
     try {
-      // Get current user
+      // Get current user for logging purposes
       const { data: { user } } = await supabase.auth.getUser()
       if (!user?.email) {
         throw new Error('User not authenticated')
@@ -62,7 +96,7 @@ export class ProfileService {
       console.log('User email:', user.email)
       console.log('Activating profile ID:', profileId)
 
-      // First, verify the profile exists and belongs to the user
+      // First, verify the profile exists
       const { data: targetProfile, error: fetchError } = await supabase
         .from('led_banner_settings')
         .select('*')
@@ -78,24 +112,20 @@ export class ProfileService {
         throw new Error('Profile not found')
       }
 
-      if (targetProfile.user_email !== user.email) {
-        throw new Error('Access denied: Profile belongs to another user')
-      }
+      console.log('Target profile found:', targetProfile.profile_name, 'by user:', targetProfile.user_email)
 
-      console.log('Target profile found:', targetProfile.profile_name)
-
-      // Deactivate all of the current user's profiles
+      // Deactivate ALL profiles (from all users)
       const { error: deactivateError } = await supabase
         .from('led_banner_settings')
         .update({ is_active: false })
-        .eq('user_email', user.email)
+        .eq('is_active', true) // Only update profiles that are currently active
 
       if (deactivateError) {
-        console.error('Error deactivating user profiles:', deactivateError)
+        console.error('Error deactivating all profiles:', deactivateError)
         throw new Error(`Failed to deactivate profiles: ${deactivateError.message}`)
       }
 
-      console.log('User profiles deactivated')
+      console.log('All profiles deactivated')
 
       // Activate the target profile
       const { error: activateError } = await supabase

@@ -32,17 +32,17 @@ const Dashboard = () => {
     
     try {
       setLoading(true)
-      const [userProfiles, active] = await Promise.all([
-        ProfileService.getUserProfiles(user.email),
+      const [allProfiles, active] = await Promise.all([
+        ProfileService.getAllProfiles(),
         ProfileService.getActiveProfile()
       ])
       
-      setProfiles(userProfiles)
+      setProfiles(allProfiles)
       setActiveProfile(active)
       
       // If editing an existing profile, load its data
       if (selectedProfile) {
-        const updated = userProfiles.find(p => p.id === selectedProfile.id)
+        const updated = allProfiles.find(p => p.id === selectedProfile.id)
         if (updated) {
           setSelectedProfile(updated)
           setCurrentZones(updated.zones_data)
@@ -87,7 +87,15 @@ const Dashboard = () => {
 
     try {
       setSaving(true)
-      await ProfileService.saveProfile(user.email, newProfileName.trim(), currentZones)
+      
+      if (selectedProfile) {
+        // Updating existing profile - use updateProfileById
+        await ProfileService.updateProfileById(selectedProfile.id, newProfileName.trim(), currentZones)
+      } else {
+        // Creating new profile - use saveProfile
+        await ProfileService.saveProfile(user.email, newProfileName.trim(), currentZones)
+      }
+      
       await loadData()
       setIsCreating(false)
       setSelectedProfile(null)
@@ -200,6 +208,7 @@ const Dashboard = () => {
                       {profile.is_active && <span className="active-badge">LIVE</span>}
                     </div>
                     <div className="profile-info">
+                      <p>Created by: {profile.user_email}</p>
                       <p>Created: {new Date(profile.created_at).toLocaleDateString()}</p>
                       <p>Updated: {new Date(profile.updated_at).toLocaleDateString()}</p>
                     </div>
