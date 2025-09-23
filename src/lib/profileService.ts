@@ -163,4 +163,68 @@ export class ProfileService {
 
     return data || null
   }
+
+  static async copyProfile(sourceProfileId: string, currentUserEmail: string): Promise<BannerProfile> {
+    try {
+      // Get the source profile
+      const { data: sourceProfile, error: fetchError } = await supabase
+        .from('led_banner_settings')
+        .select('*')
+        .eq('id', sourceProfileId)
+        .single()
+
+      if (fetchError) {
+        console.error('Error fetching source profile:', fetchError)
+        throw new Error(`Source profile not found: ${fetchError.message}`)
+      }
+
+      if (!sourceProfile) {
+        throw new Error('Source profile not found')
+      }
+
+      // Get all existing profiles to determine the copy name
+      const { data: allProfiles, error: allProfilesError } = await supabase
+        .from('led_banner_settings')
+        .select('profile_name')
+
+      if (allProfilesError) {
+        console.error('Error fetching all profiles:', allProfilesError)
+        throw new Error(`Failed to fetch profiles: ${allProfilesError.message}`)
+      }
+
+      // Generate a unique copy name
+      const baseName = sourceProfile.profile_name
+      let copyName = `${baseName} (copy)`
+      let copyNumber = 2
+
+      const existingNames = new Set(allProfiles?.map(p => p.profile_name) || [])
+      
+      while (existingNames.has(copyName)) {
+        copyName = `${baseName} (copy ${copyNumber})`
+        copyNumber++
+      }
+
+      // Create the copy
+      const { data: newProfile, error: createError } = await supabase
+        .from('led_banner_settings')
+        .insert({
+          user_email: currentUserEmail,
+          profile_name: copyName,
+          zones_data: sourceProfile.zones_data,
+          is_active: false // Copies are never active by default
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('Error creating profile copy:', createError)
+        throw new Error(`Failed to create copy: ${createError.message}`)
+      }
+
+      return newProfile
+    } catch (error) {
+      console.error('Profile copy failed:', error)
+      throw error
+    }
+  }
 }

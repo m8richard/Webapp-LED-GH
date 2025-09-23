@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activating, setActivating] = useState(false)
+  const [copying, setCopying] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -160,6 +161,29 @@ const Dashboard = () => {
     }
   }
 
+  const handleCopyProfile = async (profile: BannerProfile) => {
+    if (!user?.email) return
+
+    if (!confirm(`Create a copy of "${profile.profile_name}"?`)) {
+      return
+    }
+
+    try {
+      setCopying(true)
+      console.log('Copying profile:', profile.id, profile.profile_name)
+      await ProfileService.copyProfile(profile.id, user.email)
+      console.log('Profile copied successfully')
+      await loadData()
+      alert(`Copy of "${profile.profile_name}" created successfully!`)
+    } catch (error: any) {
+      console.error('Error copying profile:', error)
+      const errorMessage = error?.message || 'Unknown error occurred'
+      alert(`Error copying profile: ${errorMessage}\n\nPlease try again or check the console for details.`)
+    } finally {
+      setCopying(false)
+    }
+  }
+
   const updateZone = (id: number, updates: Partial<Zone>) => {
     setCurrentZones(prev => prev.map(zone => 
       zone.id === id ? { ...zone, ...updates } : zone
@@ -213,17 +237,24 @@ const Dashboard = () => {
                       <p>Updated: {new Date(profile.updated_at).toLocaleDateString()}</p>
                     </div>
                     <div className="profile-actions">
-                      <button onClick={() => handleEditProfile(profile)} className="edit-btn">
+                      <button type="button" onClick={() => handleEditProfile(profile)} className="edit-btn">
                         Edit
                       </button>
-                      <button 
+                      <button type="button"
+                        onClick={() => handleCopyProfile(profile)}
+                        className="copy-btn"
+                        disabled={copying}
+                      >
+                        Copy
+                      </button>
+                      <button type="button"
                         onClick={() => handleActivateProfile(profile)} 
                         className="activate-btn"
                         disabled={activating || profile.is_active}
                       >
                         {profile.is_active ? 'Active' : 'Activate'}
                       </button>
-                      <button onClick={() => handleDeleteProfile(profile)} className="delete-btn">
+                      <button type="button" onClick={() => handleDeleteProfile(profile)} className="delete-btn">
                         Delete
                       </button>
                     </div>
