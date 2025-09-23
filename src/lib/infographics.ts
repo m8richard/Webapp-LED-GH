@@ -401,7 +401,6 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
         content: forecast.date, // This will be the main content
         color: '#00BFFF',
         duration: 4000,
-        icon: '🌤️',
         customData: {
           matchInfo: forecast.date, // Top line: date
           dateInfo: `${forecast.icon} ${forecast.tempMin}°/${forecast.tempMax}°C` // Bottom line: emoji and temps
