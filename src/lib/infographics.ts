@@ -380,76 +380,50 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
   try {
     // 1. 3-day Weather forecast for Paris
     const weatherForecast = await get3DayWeatherForecast()
+    
+    // Add Paris header only once (French on top, English on bottom)
+    elements.push({
+      id: 'weather-header',
+      type: 'weather',
+      content: 'Météo Paris',
+      color: '#00BFFF',
+      duration: 3000,
+      customData: {
+        matchInfo: 'Météo Paris', // French on top
+        dateInfo: 'Paris Weather' // English on bottom
+      }
+    })
+    
     weatherForecast.forEach((forecast, index) => {
       elements.push({
         id: `weather-day-${index}`,
         type: 'weather',
-        content: `Paris - ${forecast.date} ${forecast.icon} ${forecast.tempMin}°/${forecast.tempMax}°C`,
+        content: forecast.date, // This will be the main content
         color: '#00BFFF',
-        duration: 4000
+        duration: 4000,
+        icon: '🌤️',
+        customData: {
+          matchInfo: forecast.date, // Top line: date
+          dateInfo: `${forecast.icon} ${forecast.tempMin}°/${forecast.tempMax}°C` // Bottom line: emoji and temps
+        }
       })
     })
-    
-    // 2. Clean facility reminder (French then English)
-    elements.push({
-      id: 'clean-fr',
-      type: 'clean-reminder',
-      content: '🧹 Merci de garder la Gaming House propre !',
-      color: '#32CD32',
-      duration: 4000
-    })
 
-    elements.push({
-      id: 'lights-fr',
-      type: 'clean-reminder',
-      content: '💡 Éteignez les lumières quand vous partez !',
-      color: '#32CD32',
-      duration: 4000
-    })
-    
-    elements.push({
-      id: 'clean-en',
-      type: 'clean-reminder',
-      content: '🧹 Please keep the Gaming House clean!',
-      color: '#32CD32',
-      duration: 4000
-    })
-
-    elements.push({
-      id: 'lights-en',
-      type: 'clean-reminder',
-      content: '💡 Switch off lights when leaving!',
-      color: '#32CD32',
-      duration: 4000
-    })
-    
-    // 3. Stay hydrated reminder (French then English)
-    elements.push({
-      id: 'hydration-fr',
-      type: 'hydration',
-      content: '💧 Restez hydratés ! Buvez de l\'eau régulièrement',
-      color: '#1E90FF',
-      duration: 4000
-    })
-    
-    elements.push({
-      id: 'hydration-en',
-      type: 'hydration',
-      content: '💧 Stay hydrated! Drink water regularly',
-      color: '#1E90FF',
-      duration: 4000
-    })
-    
     // 4. Upcoming matches
     const matchesData = await getUpcomingMatches(3)
     if (matchesData.length > 0) {
-      // Add matches header
+      // Add matches header with sword emoji (French on top, English on bottom)
       elements.push({
         id: 'matches-header',
         type: 'match',
-        content: 'Prochains matchs / Next matches :',
-        color: '#000000',
-        duration: 4000
+        content: 'Prochains matchs',
+        color: '#EDEDED',
+        duration: 4000,
+        icon: '⚔️', // Sword emoji spanning both lines
+        customData: {
+          matchInfo: 'Prochains matchs', // French on top
+          dateInfo: 'Next matches' // English on bottom
+        }
       })
     }
     
@@ -466,7 +440,7 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
       
       const dateInfo = `${date} ${time}`
       
-      // Create a combined element with structured data for custom rendering
+      // Regular match display (no header integration)
       elements.push({
         id: `match-${match.id}`,
         type: 'match',
@@ -474,13 +448,55 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
         color: game.secondary_color || '#FF6B35',
         imageUrl: game.colored_logo_url || game.dark_logo_url,
         duration: 5000,
-        // Add custom data for multi-line rendering
         customData: {
           matchInfo,
           dateInfo
         }
       })
     })
+    
+    // 2. Clean facility reminder (French/English combined)
+    elements.push({
+      id: 'clean-reminder',
+      type: 'clean-reminder',
+      content: 'Merci de garder la Gaming House propre !',
+      color: '#FFFFFF',
+      duration: 5000,
+      icon: '🧹', // Single emoji for both lines
+      customData: {
+        matchInfo: 'Merci de garder la Gaming House propre !', // French on top (no emoji)
+        dateInfo: 'Please keep the Gaming House clean!' // English on bottom (no emoji)
+      }
+    })
+
+    elements.push({
+      id: 'lights-reminder',
+      type: 'clean-reminder',
+      content: 'Éteignez les lumières quand vous partez !',
+      color: '#FFFF00',
+      duration: 5000,
+      icon: '💡', // Single emoji for both lines
+      customData: {
+        matchInfo: 'Éteignez les lumières quand vous partez !', // French on top (no emoji)
+        dateInfo: 'Switch off lights when leaving!' // English on bottom (no emoji)
+      }
+    })
+    
+    // 3. Stay hydrated reminder (French/English combined) with Volvic bottle
+    elements.push({
+      id: 'hydration-reminder',
+      type: 'hydration',
+      content: 'Restez hydratés !',
+      color: '#00CC00',
+      duration: 5000,
+      imageUrl: 'https://media.evianchezvous.com/media/catalog/product/cache/a40b1ffa2f2a502a78b9cb14b017380a/v/o/volvic_1_5l_1.png', // Volvic bottle image
+      customData: {
+        matchInfo: 'Restez hydratés ! Buvez de l\'eau régulièrement', // French on top (no emoji)
+        dateInfo: 'Stay hydrated! Drink water regularly' // English on bottom (no emoji)
+      }
+    })
+    
+    
     
     // 5. Birthday information
     const { todayBirthdays, upcomingBirthdays } = await getBirthdayInfo()
@@ -498,24 +514,33 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
     
     // Upcoming birthdays - grouped together
     if (upcomingBirthdays.length > 0) {
-      // Header for upcoming birthdays
+      // Header for upcoming birthdays (French/English combined)
       elements.push({
         id: 'birthday-header',
         type: 'birthday',
-        content: '🎂 Prochains anniversaires / Upcoming birthdays :',
+        content: 'Prochains anniversaires',
         color: '#FFB6C1',
-        duration: 4000
+        duration: 4000,
+        icon: '🎂', // Single emoji for both lines
+        customData: {
+          matchInfo: 'Prochains anniversaires', // French on top (no emoji)
+          dateInfo: 'Upcoming birthdays' // English on bottom (no emoji)
+        }
       })
       
-      // Individual upcoming birthdays
+      // Individual upcoming birthdays (name on top, date on bottom)
       upcomingBirthdays.forEach((player: Player & { daysUntil: number }) => {
         const birthDate = formatBirthday(player.birthDate)
         elements.push({
           id: `birthday-upcoming-${player.id}`,
           type: 'birthday',
-          content: `${player.first_name} (${player.pseudo}) • ${birthDate}`,
+          content: `${player.first_name} (${player.pseudo})`,
           color: '#FFB6C1',
-          duration: 3000
+          duration: 4000,
+          customData: {
+            matchInfo: `${player.first_name} (${player.pseudo})`, // Name on top
+            dateInfo: `${birthDate}` // Date on bottom
+          }
         })
       })
     }
@@ -530,44 +555,38 @@ export const generateInfographicElements = async (): Promise<InfographicElement[
       {
         id: 'fallback-1',
         type: 'clean-reminder',
-        content: '🧹 Merci de garder la Gaming House propre !',
+        content: 'Merci de garder la Gaming House propre !',
         color: '#32CD32',
-        duration: 4000
+        duration: 5000,
+        icon: '🧹',
+        customData: {
+          matchInfo: 'Merci de garder la Gaming House propre !',
+          dateInfo: 'Please keep the Gaming House clean!'
+        }
       },
       {
         id: 'fallback-2',
         type: 'clean-reminder',
-        content: '💡 Éteignez les lumières quand vous partez !',
+        content: 'Éteignez les lumières quand vous partez !',
         color: '#32CD32',
-        duration: 4000
+        duration: 5000,
+        icon: '💡',
+        customData: {
+          matchInfo: 'Éteignez les lumières quand vous partez !',
+          dateInfo: 'Switch off lights when leaving!'
+        }
       },
       {
         id: 'fallback-3',
-        type: 'clean-reminder',
-        content: '🧹 Please keep the Gaming House clean!',
-        color: '#32CD32',
-        duration: 4000
-      },
-      {
-        id: 'fallback-4',
-        type: 'clean-reminder',
-        content: '💡 Switch off lights when leaving!',
-        color: '#32CD32',
-        duration: 4000
-      },
-      {
-        id: 'fallback-5',
         type: 'hydration',
-        content: '💧 Restez hydratés ! Buvez de l\'eau régulièrement 🚰',
+        content: 'Restez hydratés !',
         color: '#1E90FF',
-        duration: 4000
-      },
-      {
-        id: 'fallback-6',
-        type: 'hydration',
-        content: '💧 Stay hydrated! Drink water regularly 🚰',
-        color: '#1E90FF',
-        duration: 4000
+        duration: 5000,
+        imageUrl: 'https://media.evianchezvous.com/media/catalog/product/cache/a40b1ffa2f2a502a78b9cb14b017380a/v/o/volvic_1_5l_1.png',
+        customData: {
+          matchInfo: 'Restez hydratés ! Buvez de l\'eau régulièrement',
+          dateInfo: 'Stay hydrated! Drink water regularly'
+        }
       }
     )
   }
