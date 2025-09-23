@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { ProfileService } from '../lib/profileService'
-import { BannerProfile, Zone } from '../lib/supabase'
+import { BannerProfile, Zone, NightMode, validateNightMode } from '../lib/supabase'
 import LEDBannerCanvas from '../components/LEDBannerCanvas'
 import ZoneEditor from '../components/ZoneEditor'
 import './Dashboard.css'
@@ -23,6 +23,15 @@ const Dashboard = () => {
   const [saving, setSaving] = useState(false)
   const [activating, setActivating] = useState(false)
   const [copying, setCopying] = useState(false)
+  const [nightMode, setNightMode] = useState<NightMode>({
+    enabled: false,
+    startHour: 23,
+    startMinute: 0,
+    endHour: 7,
+    endMinute: 0,
+    endNextDay: true
+  })
+  const [nightModeError, setNightModeError] = useState('')
 
   useEffect(() => {
     loadData()
@@ -71,6 +80,15 @@ const Dashboard = () => {
       { id: 3, text: 'ZONE 3 🚀', color: '#ff00ec', speed: 2.5, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended', displayMode: 'text' },
       { id: 4, text: 'ZONE 4 🌍', color: '#ff00ec', speed: 1.8, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended', displayMode: 'text' }
     ])
+    setNightMode({
+      enabled: false,
+      startHour: 23,
+      startMinute: 0,
+      endHour: 7,
+      endMinute: 0,
+      endNextDay: true
+    })
+    setNightModeError('')
   }
 
   const handleEditProfile = (profile: BannerProfile) => {
@@ -78,6 +96,15 @@ const Dashboard = () => {
     setSelectedProfile(profile)
     setNewProfileName(profile.profile_name)
     setCurrentZones(profile.zones_data)
+    setNightMode(profile.night_mode || {
+      enabled: false,
+      startHour: 23,
+      startMinute: 0,
+      endHour: 7,
+      endMinute: 0,
+      endNextDay: true
+    })
+    setNightModeError('')
   }
 
   const handleSaveProfile = async () => {
@@ -86,15 +113,24 @@ const Dashboard = () => {
       return
     }
 
+    // Validate night mode if enabled
+    if (nightMode.enabled) {
+      const error = validateNightMode(nightMode)
+      if (error) {
+        setNightModeError(error)
+        return
+      }
+    }
+
     try {
       setSaving(true)
       
       if (selectedProfile) {
         // Updating existing profile - use updateProfileById
-        await ProfileService.updateProfileById(selectedProfile.id, newProfileName.trim(), currentZones)
+        await ProfileService.updateProfileById(selectedProfile.id, newProfileName.trim(), currentZones, nightMode)
       } else {
         // Creating new profile - use saveProfile
-        await ProfileService.saveProfile(user.email, newProfileName.trim(), currentZones)
+        await ProfileService.saveProfile(user.email, newProfileName.trim(), currentZones, nightMode)
       }
       
       await loadData()
@@ -295,9 +331,125 @@ const Dashboard = () => {
                 </div>
 
                 <div className="editor-content">
-                  <div className="preview-section">
-                    <h3>Preview</h3>
-                    <LEDBannerCanvas zones={currentZones} />
+                  <div className="config-section">
+                    {/* Night Mode Indicator */}
+                    {nightMode.enabled && (
+                      <div className="night-mode-indicator">
+                        🌙 Night mode is ON - All banners will be black from {nightMode.startHour.toString().padStart(2, '0')}:{nightMode.startMinute.toString().padStart(2, '0')} to {nightMode.endHour.toString().padStart(2, '0')}:{nightMode.endMinute.toString().padStart(2, '0')}{nightMode.endNextDay ? ' (+1 day)' : ''}
+                      </div>
+                    )}
+                    
+                    {/* Preview Section */}
+                    <div className="preview-section">
+                      <h3>Preview</h3>
+                      <LEDBannerCanvas zones={currentZones} />
+                    </div>
+                    
+                    {/* Night Mode Panel */}
+                    <div className="night-mode-config">
+                      <h3>Night Mode</h3>
+                      <div className="night-mode-controls">
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={nightMode.enabled}
+                            onChange={(e) => {
+                              setNightMode(prev => ({ ...prev, enabled: e.target.checked }))
+                              setNightModeError('')
+                            }}
+                          />
+                          Enable night mode (all zones black to save energy)
+                        </label>
+                        
+                        {nightMode.enabled && (
+                          <div className="time-selectors">
+                            <div className="time-row">
+                              <label>Start time:</label>
+                              <div className="time-inputs">
+                                <input
+                                  title='start-time'
+                                  placeholder=''
+                                  type="time"
+                                  value={`${nightMode.startHour.toString().padStart(2, '0')}:${nightMode.startMinute.toString().padStart(2, '0')}`}
+                                  onChange={(e) => {
+                                    const timeValue = e.target.value
+                                    if (timeValue && timeValue.includes(':')) {
+                                      const [hourStr, minuteStr] = timeValue.split(':')
+                                      const hour = parseInt(hourStr, 10)
+                                      const minute = parseInt(minuteStr, 10)
+                                      if (!isNaN(hour) && !isNaN(minute) && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+                                        setNightMode(prev => ({ ...prev, startHour: hour, startMinute: minute }))
+                                        setNightModeError('')
+                                      }
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="time-row">
+                              <label>End time:</label>
+                              <div className="time-inputs">
+                                <input
+                                  title='end-time'
+                                  placeholder=''
+                                  type="time"
+                                  value={`${nightMode.endHour.toString().padStart(2, '0')}:${nightMode.endMinute.toString().padStart(2, '0')}`}
+                                  onChange={(e) => {
+                                    const timeValue = e.target.value
+                                    if (timeValue && timeValue.includes(':')) {
+                                      const [hourStr, minuteStr] = timeValue.split(':')
+                                      const hour = parseInt(hourStr, 10)
+                                      const minute = parseInt(minuteStr, 10)
+                                      if (!isNaN(hour) && !isNaN(minute) && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+                                        setNightMode(prev => ({ ...prev, endHour: hour, endMinute: minute }))
+                                        setNightModeError('')
+                                      }
+                                    }
+                                  }}
+                                />
+                                
+                                <label className="checkbox-label">
+                                  <input
+                                    type="checkbox"
+                                    checked={nightMode.endNextDay}
+                                    onChange={(e) => {
+                                      setNightMode(prev => ({ ...prev, endNextDay: e.target.checked }))
+                                      setNightModeError('')
+                                    }}
+                                  />
+                                  End time is next day
+                                </label>
+                              </div>
+                            </div>
+                            
+                            {nightModeError && (
+                              <div className="error-message">
+                                {nightModeError}
+                              </div>
+                            )}
+                            
+                            <div className="night-mode-actions">
+                              <button 
+                                type="button"
+                                className="save-night-mode-btn"
+                                onClick={() => {
+                                  const error = validateNightMode(nightMode)
+                                  if (error) {
+                                    setNightModeError(error)
+                                  } else {
+                                    setNightModeError('')
+                                    alert('Night mode configuration validated! Remember to save the profile to persist changes.')
+                                  }
+                                }}
+                              >
+                                Validate Night Mode
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="zones-section">

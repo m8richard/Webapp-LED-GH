@@ -10,11 +10,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 })
 
 // Database types
+export interface NightMode {
+  enabled: boolean
+  startHour: number
+  startMinute: number
+  endHour: number
+  endMinute: number
+  endNextDay: boolean
+}
+
 export interface BannerProfile {
   id: string
   user_email: string
   profile_name: string
   zones_data: Zone[]
+  night_mode?: NightMode
   is_active: boolean
   created_at: string
   updated_at: string
@@ -69,4 +79,50 @@ export const signInWithGoogle = async () => {
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut()
   return { error }
+}
+
+// Utility function to check if current time is within night mode hours
+export const isInNightMode = (nightMode?: NightMode): boolean => {
+  if (!nightMode || !nightMode.enabled) {
+    return false
+  }
+
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  
+  const { startHour, startMinute, endHour, endMinute, endNextDay } = nightMode
+  const startMinutes = startHour * 60 + startMinute
+  const endMinutes = endHour * 60 + endMinute
+  
+  if (!endNextDay) {
+    // Same day: start and end on same day
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes
+  } else {
+    // Cross midnight: start today, end tomorrow
+    return currentMinutes >= startMinutes || currentMinutes < endMinutes
+  }
+}
+
+// Utility function to validate night mode
+export const validateNightMode = (nightMode: NightMode): string | null => {
+  if (!nightMode.enabled) {
+    return null // No validation needed if disabled
+  }
+  
+  const startMinutes = nightMode.startHour * 60 + nightMode.startMinute
+  const endMinutes = nightMode.endHour * 60 + nightMode.endMinute
+  
+  if (!nightMode.endNextDay) {
+    // Same day: start must be before end
+    if (startMinutes >= endMinutes) {
+      return 'Start time must be before end time on the same day'
+    }
+  } else {
+    // Cross midnight: start must not equal end (would be 24 hours)
+    if (startMinutes === endMinutes) {
+      return 'Start time cannot equal end time when crossing days'
+    }
+  }
+  
+  return null // Valid
 }

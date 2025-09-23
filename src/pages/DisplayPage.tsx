@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase, BannerProfile } from '../lib/supabase'
+import { supabase, BannerProfile, isInNightMode } from '../lib/supabase'
 import LiveDisplayCanvas from '../components/LiveDisplayCanvas'
 
 const DisplayPage = () => {
@@ -185,6 +185,78 @@ const DisplayPage = () => {
       clearInterval(intervalId)
     }
   }, [])
+
+  // Schedule night mode refreshes
+  useEffect(() => {
+    if (!activeProfile || !activeProfile.night_mode || !activeProfile.night_mode.enabled) {
+      return
+    }
+
+    const { startHour, startMinute, endHour, endMinute, endNextDay } = activeProfile.night_mode
+
+    const scheduleNightModeRefresh = (targetHour: number, targetMinute: number, isNextDay: boolean = false) => {
+      const now = new Date()
+      const target = new Date()
+      
+      if (isNextDay) {
+        target.setDate(target.getDate() + 1)
+      }
+      
+      target.setHours(targetHour, targetMinute, 0, 0)
+      
+      // If target time has already passed today and it's not next day, schedule for tomorrow
+      if (target.getTime() <= now.getTime() && !isNextDay) {
+        target.setDate(target.getDate() + 1)
+      }
+      
+      const timeUntilTarget = target.getTime() - now.getTime()
+      
+      console.log(`⏰ Scheduling night mode refresh for ${target.toLocaleTimeString()} (in ${Math.round(timeUntilTarget / 1000 / 60)} minutes)`)
+      
+      const timeoutId = setTimeout(() => {
+        console.log('🌙 Night mode refresh triggered - refreshing display...')
+        window.location.reload()
+      }, timeUntilTarget)
+      
+      return timeoutId
+    }
+
+    const timeouts: NodeJS.Timeout[] = []
+
+    // Schedule start time refresh
+    timeouts.push(scheduleNightModeRefresh(startHour, startMinute))
+    
+    // Schedule end time refresh
+    if (endNextDay) {
+      // End time is next day
+      timeouts.push(scheduleNightModeRefresh(endHour, endMinute, true))
+    } else {
+      // End time is same day
+      timeouts.push(scheduleNightModeRefresh(endHour, endMinute))
+    }
+
+    return () => {
+      timeouts.forEach(timeout => clearTimeout(timeout))
+    }
+  }, [activeProfile])
+
+  // Check if we're in night mode and should show black screen
+  const isNight = activeProfile && isInNightMode(activeProfile.night_mode)
+  
+  if (isNight) {
+    return (
+      <div style={{ 
+        width: '100vw', 
+        height: '100vh', 
+        background: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        {/* Completely black screen for energy saving */}
+      </div>
+    )
+  }
 
   return <LiveDisplayCanvas zones={activeProfile?.zones_data} />
 }

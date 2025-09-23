@@ -1,4 +1,4 @@
-import { supabase, BannerProfile, Zone } from './supabase'
+import { supabase, BannerProfile, Zone, NightMode } from './supabase'
 
 export class ProfileService {
   static async getUserProfiles(userEmail: string): Promise<BannerProfile[]> {
@@ -30,13 +30,14 @@ export class ProfileService {
     return data || []
   }
 
-  static async saveProfile(userEmail: string, profileName: string, zones: Zone[]): Promise<BannerProfile> {
+  static async saveProfile(userEmail: string, profileName: string, zones: Zone[], nightMode?: NightMode): Promise<BannerProfile> {
     const { data, error } = await supabase
       .from('led_banner_settings')
       .upsert({
         user_email: userEmail,
         profile_name: profileName,
         zones_data: zones,
+        night_mode: nightMode,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_email,profile_name'
@@ -52,12 +53,13 @@ export class ProfileService {
     return data
   }
 
-  static async updateProfileById(profileId: string, profileName: string, zones: Zone[]): Promise<BannerProfile> {
+  static async updateProfileById(profileId: string, profileName: string, zones: Zone[], nightMode?: NightMode): Promise<BannerProfile> {
     const { data, error } = await supabase
       .from('led_banner_settings')
       .update({
         profile_name: profileName,
         zones_data: zones,
+        night_mode: nightMode,
         updated_at: new Date().toISOString()
       })
       .eq('id', profileId)
