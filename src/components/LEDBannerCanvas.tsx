@@ -70,44 +70,26 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       }
     }
 
-    // Fetch active temporary messages
-    const fetchTemporaryMessages = async () => {
-      const now = new Date().toISOString()
-      const { data, error } = await supabase
-        .from('temporary_messages')
-        .select('*')
-        .eq('is_active', true)
-        .gt('expires_at', now)
-        .order('created_at', { ascending: false })
-      
-      if (error) {
-        console.error('Error fetching temporary messages:', error)
-        return
-      }
-      
-      setTemporaryMessages(data || [])
-    }
+    // Initialize empty state for insertion-based system
+    setTemporaryMessages([])
 
     initializeInfographics()
     initializeCS2Data()
-    fetchTemporaryMessages()
 
-    // Subscribe to temporary messages changes
+    // Subscribe to temporary messages changes - insertion-based
     const messagesSubscription = supabase
       .channel('temporary_messages_changes')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'temporary_messages' },
-        () => {
-          fetchTemporaryMessages()
+        { event: 'INSERT', schema: 'public', table: 'temporary_messages' },
+        (payload) => {
+          const newMessage = payload.new as TemporaryMessage
+          console.log('📥 LEDBanner: New message received:', newMessage)
+          setTemporaryMessages(prev => [...prev, newMessage])
         }
       )
       .subscribe()
 
-    // Clean up expired messages every 5 seconds
-    const cleanupInterval = setInterval(() => {
-      const now = new Date().toISOString()
-      setTemporaryMessages(prev => prev.filter(msg => msg.expires_at > now))
-    }, 5000)
+    // No cleanup interval needed - duration-based expiry in render loop
 
     const loadBackgroundElement = (zone: Zone): Promise<HTMLImageElement | HTMLVideoElement | null> => {
       return new Promise((resolve) => {
@@ -499,11 +481,20 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
           animationType: message.animation,
           progress: 0
         })
+        console.log(`🎬 LEDBanner: Starting animation for "${message.message}" (${message.duration}s)`)
       }
       
       const overlayAnimation = overlayAnimationsRef.current.get(overlayKey)!
       const elapsed = Date.now() - overlayAnimation.startTime
-      const animationDuration = 500 // Animation duration in ms
+      const elapsedSeconds = elapsed / 1000
+      
+      // Check if message duration has expired
+      if (elapsedSeconds >= message.duration) {
+        console.log(`⏰ LEDBanner: Message "${message.message}" expired after ${elapsedSeconds}s`)
+        return // Don't render expired messages
+      }
+      
+      const animationDuration = 500 // Animation transition duration in ms
       overlayAnimation.progress = Math.min(elapsed / animationDuration, 1)
       
       ctx.save()
@@ -689,10 +680,12 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         await drawZone(zone, yPosition, scrollOffsetsRef.current[index], subScrollOffsetsRef.current[index])
         
         // Draw temporary message overlay if exists for this zone
-        const activeMessage = temporaryMessages.find(msg => 
-          msg.zones.includes(zone.id) && 
-          new Date(msg.expires_at) > new Date()
+        const validMessages = temporaryMessages.filter(msg => 
+          msg.zones.includes(zone.id)
         )
+        
+        // Get the most recent message for this zone (latest insertion)
+        const activeMessage = validMessages[validMessages.length - 1]
         
         if (activeMessage) {
           drawTemporaryMessage(activeMessage, zone, yPosition)
@@ -718,12 +711,22 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         })
       }
       
-      // Clean up expired overlay animations
-      for (const [key,] of overlayAnimationsRef.current.entries()) {
+      // Clean up expired overlay animations - duration-based
+      const now = Date.now()
+      for (const [key, animation] of overlayAnimationsRef.current.entries()) {
         const messageId = key.split('-')[0]
         const message = temporaryMessages.find(msg => msg.id === messageId)
-        if (!message || new Date(message.expires_at) <= new Date()) {
+        if (!message) {
+          // Message no longer exists, clean up
           overlayAnimationsRef.current.delete(key)
+        } else {
+          // Check if duration has expired
+          const elapsed = (now - animation.startTime) / 1000
+          if (elapsed >= message.duration) {
+            overlayAnimationsRef.current.delete(key)
+            // Remove expired message from state
+            setTemporaryMessages(prev => prev.filter(m => m.id !== message.id))
+          }
         }
       }
       
@@ -737,7 +740,6 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         cancelAnimationFrame(animationRef.current)
       }
       messagesSubscription.unsubscribe()
-      clearInterval(cleanupInterval)
     }
   }, [zones, isAnimating])
 
