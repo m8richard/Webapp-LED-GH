@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Zone } from '../lib/supabase'
+import { Zone, TemporaryMessage, supabase } from '../lib/supabase'
 import { loadAllFonts, getFontFamily } from '../lib/fonts'
 import { generateInfographicElements, InfographicElement, getCS2PlayerData, CS2PlayerData } from '../lib/infographics'
 
@@ -20,6 +20,13 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   const infographicTimerRef = useRef<Record<number, number>>({})
   const logoImagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
   const cs2PlayerDataRef = useRef<Record<number, CS2PlayerData[]>>({})
+  
+  // Temporary message system
+  const [temporaryMessages, setTemporaryMessages] = useState<TemporaryMessage[]>([])
+  const messageAnimationStateRef = useRef<Record<string, {
+    startTime: number
+    scrollOffset: number
+  }>>({})
   
   const defaultZones: Zone[] = [
     { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended', displayMode: 'text' },
@@ -457,6 +464,147 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       ctx.restore()
     }
 
+    const drawTemporaryMessageOverlay = (message: TemporaryMessage, zoneId: number, yPosition: number, currentTime: number) => {
+      const animationState = messageAnimationStateRef.current[message.id]
+      if (!animationState) {
+        // Initialize animation state
+        messageAnimationStateRef.current[message.id] = {
+          startTime: currentTime,
+          scrollOffset: CANVAS_WIDTH // Start from right edge
+        }
+        console.log(`🎬 Starting overlay animation for message: "${message.message}" (${message.duration}s duration)`)
+        return
+      }
+
+      const elapsed = (currentTime - animationState.startTime) / 1000 // Convert to seconds
+      const width = zoneId === 4 ? 864 : CANVAS_WIDTH
+
+      // Duration check is now handled in getActiveTemporaryMessageForZone
+      // This function only handles rendering for active messages
+
+      ctx.save()
+      
+      // Set up clipping for the zone
+      ctx.beginPath()
+      ctx.rect(0, yPosition, width, ZONE_HEIGHT)
+      ctx.clip()
+
+      // Set text properties for overlay
+      const fontSize = 48
+      const fontFamily = getFontFamily('HelveticaBoldExtended')
+      ctx.font = `bold ${fontSize}px ${fontFamily}`
+      
+      // Create text with outline for better visibility over any background
+      const textY = yPosition + (ZONE_HEIGHT / 2) + (fontSize / 3)
+      
+      // Function to draw text with outline
+      const drawTextWithOutline = (text: string, x: number, y: number, alpha: number = 1) => {
+        ctx.globalAlpha = alpha
+        // Draw black outline
+        ctx.strokeStyle = '#000000'
+        ctx.lineWidth = 4
+        ctx.strokeText(text, x, y)
+        // Draw white fill
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText(text, x, y)
+      }
+
+      if (message.animation === 'scroll') {
+        // Scrolling animation - use zone's speed or default
+        const textWidth = ctx.measureText(message.message).width
+        const zone = zones.find(z => z.id === zoneId)
+        const scrollSpeed = zone ? zone.speed * 60 : 120 // Convert zone speed to pixels per second
+        
+        // Calculate position based on actual scroll speed, not duration
+        const distanceTraveled = scrollSpeed * elapsed
+        const textX = width - distanceTraveled
+
+        // Draw multiple instances for continuous scroll
+        const spacing = 50
+        const totalWidth = textWidth + spacing
+        const instancesNeeded = Math.ceil((width + totalWidth + Math.abs(textX)) / totalWidth) + 2
+        
+        for (let i = 0; i < instancesNeeded; i++) {
+          const x = textX + (i * totalWidth)
+          if (x > -textWidth && x < width + textWidth) {
+            drawTextWithOutline(message.message, x, textY)
+          }
+        }
+      } else if (message.animation === 'fade') {
+        // Fade animation
+        let opacity = 1
+        const fadeTime = 0.5 // 0.5 second fade in/out
+        
+        if (elapsed < fadeTime) {
+          opacity = elapsed / fadeTime
+        } else if (elapsed > message.duration - fadeTime) {
+          opacity = Math.max(0, (message.duration - elapsed) / fadeTime)
+        }
+        
+        // Center the text
+        const textWidth = ctx.measureText(message.message).width
+        const textX = (width - textWidth) / 2
+        drawTextWithOutline(message.message, textX, textY, opacity)
+      } else if (message.animation === 'slide') {
+        // Slide animation
+        const textWidth = ctx.measureText(message.message).width
+        const slideTime = 0.5 // 0.5 second slide in/out
+        let textX = (width - textWidth) / 2
+        
+        if (elapsed < slideTime) {
+          // Slide in from right
+          const progress = elapsed / slideTime
+          textX = width + (textX - width) * progress
+        } else if (elapsed > message.duration - slideTime) {
+          // Slide out to left
+          const progress = (elapsed - (message.duration - slideTime)) / slideTime
+          textX = textX - (textX + textWidth) * progress
+        }
+        
+        drawTextWithOutline(message.message, textX, textY)
+      } else {
+        // No animation - just center
+        const textWidth = ctx.measureText(message.message).width
+        const textX = (width - textWidth) / 2
+        drawTextWithOutline(message.message, textX, textY)
+      }
+
+      ctx.restore()
+    }
+
+    const getActiveTemporaryMessageForZone = (zoneId: number, currentTime: number): TemporaryMessage | null => {
+      const validMessages = temporaryMessages
+        .filter(msg => msg.zones.includes(zoneId))
+        .filter(msg => {
+          // Duration-based filtering - pure insertion system
+          const animationState = messageAnimationStateRef.current[msg.id]
+          if (!animationState) {
+            console.log(`🆕 New message ready to display: "${msg.message}" (${msg.duration}s)`)
+            return true // New message, should be displayed
+          }
+          
+          const elapsed = (currentTime - animationState.startTime) / 1000
+          const stillActive = elapsed < msg.duration
+          
+          if (!stillActive) {
+            // Clean up expired animation state and remove from memory
+            delete messageAnimationStateRef.current[msg.id]
+            console.log(`⏰ Message "${msg.message}" duration expired after ${elapsed}s`)
+            // Remove expired message from state
+            setTemporaryMessages(prev => prev.filter(m => m.id !== msg.id))
+          }
+          
+          return stillActive
+        })
+        .reverse() // Most recent message first (latest insertion)
+      
+      if (validMessages.length > 0) {
+        console.log(`🎯 Displaying message for zone ${zoneId}:`, validMessages[0])
+      }
+      
+      return validMessages[0] || null // Return the most recent message
+    }
+
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
       const width = zone.id === 4 ? 864 : CANVAS_WIDTH
       const currentZoneHeight = ZONE_HEIGHT
@@ -574,6 +722,17 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         const zone = zones[index]
         const yPosition = index * ZONE_HEIGHT
         await drawZone(zone, yPosition, scrollOffsetsRef.current[index], subScrollOffsetsRef.current[index])
+        
+        // Debug: Log current temporary messages state periodically
+        if (index === 0 && Math.floor(currentTime / 5000) !== Math.floor(lastTimeRef.current / 5000)) {
+          console.log('🔄 Current temporaryMessages:', temporaryMessages)
+        }
+        
+        // Draw temporary message overlay on top of zone content (non-destructive)
+        const temporaryMessage = getActiveTemporaryMessageForZone(zone.id, currentTime)
+        if (temporaryMessage) {
+          drawTemporaryMessageOverlay(temporaryMessage, zone.id, yPosition, currentTime)
+        }
       }
       
       // Update scroll offsets with time-based animation
@@ -586,11 +745,34 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           // Update main line scroll offset
           scrollOffsetsRef.current[index] -= actualSpeed
           
+          // Reset main scroll offset for continuous scrolling
+          // We need to measure text here for reset logic
+          ctx.font = `bold ${(zone.lineMode || 'single') === 'single' ? 48 : 32}px ${getFontFamily(zone.font)}`
+          const zoneText = zone.forceUppercase ? zone.text.toUpperCase() : zone.text
+          const textWidth = ctx.measureText(zoneText).width
+          const spacing = (zone.lineMode || 'single') === 'single' ? 50 : 40
+          const totalWidth = textWidth + spacing
+          
+          if (scrollOffsetsRef.current[index] <= -totalWidth) {
+            scrollOffsetsRef.current[index] = 0
+          }
+          
           // Update sub-line scroll offset for double line mode
           if ((zone.lineMode || 'single') === 'double' && zone.subZone) {
             const subPixelsPerSecond = zone.subZone.speed * 60
             const subActualSpeed = (subPixelsPerSecond * deltaTime) / 1000
             subScrollOffsetsRef.current[index] -= subActualSpeed
+            
+            // Reset sub-scroll offset for continuous scrolling (same logic as main line)
+            ctx.font = `bold 32px ${getFontFamily(zone.subZone.font || zone.font)}`
+            const subZoneText = zone.forceUppercase ? zone.subZone.text.toUpperCase() : zone.subZone.text
+            const subTextWidth = ctx.measureText(subZoneText).width
+            const subSpacing = 40
+            const subTotalWidth = subTextWidth + subSpacing
+            
+            if (subScrollOffsetsRef.current[index] <= -subTotalWidth) {
+              subScrollOffsetsRef.current[index] = 0
+            }
           }
         })
       }
@@ -605,7 +787,47 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [zones, isAnimating])
+  }, [zones, isAnimating, temporaryMessages])
+
+  // Temporary messages subscription - insertion-based system
+  useEffect(() => {
+    // Start with empty state - only show messages from new insertions
+    console.log('🚀 Starting insertion-based temporary message system')
+    setTemporaryMessages([])
+
+    // Subscribe to real-time changes
+    const subscription = supabase
+      .channel('temporary_messages_realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'temporary_messages'
+      }, (payload) => {
+        console.log('📨 New temporary message INSERT:', payload)
+        
+        const newMessage = payload.new as TemporaryMessage
+        console.log('📥 INSERT event received:', newMessage)
+        // Add every new message immediately - pure insertion-based system
+        setTemporaryMessages(prev => {
+          const updated = [...prev, newMessage]
+          console.log('📋 Updated temporaryMessages state:', updated)
+          return updated
+        })
+        console.log(`✅ New temporary message added: "${newMessage.message}" for ${newMessage.duration}s`)
+      })
+      .subscribe((status, err) => {
+        console.log('📡 Temporary messages subscription status:', status)
+        if (err) {
+          console.error('❌ Subscription error:', err)
+        }
+      })
+
+    // No cleanup interval needed - messages auto-expire by duration in render loop
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
 
   return (
     <div style={{ 
