@@ -450,19 +450,21 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
               <select 
                 id={`bg-mode-${zone.id}`}
                 value={zone.backgroundMode || 'contain'}
-                onChange={(e) => onUpdate({ backgroundMode: e.target.value as 'contain' | 'cover' | 'fill' | 'stretch' })}
+                onChange={(e) => onUpdate({ backgroundMode: e.target.value as 'contain' | 'cover' | 'fill' | 'stretch' | 'no-resizing' })}
                 className="background-mode-select"
               >
                 <option value="contain">Contain (fit with letterbox)</option>
                 <option value="cover">Cover (fill zone, may crop)</option>
                 <option value="fill">Fill (stretch to fit exactly)</option>
                 <option value="stretch">Stretch (ignore aspect ratio)</option>
+                <option value="no-resizing">No resizing (original size from top-left)</option>
               </select>
               <small className="mode-description">
                 {(zone.backgroundMode || 'contain') === 'contain' && 'Image/video fits completely within zone with black bars if needed'}
                 {(zone.backgroundMode || 'contain') === 'cover' && 'Image/video fills entire zone, may crop edges to maintain aspect ratio'}
                 {(zone.backgroundMode || 'contain') === 'fill' && 'Image/video stretches to fill zone exactly, may distort aspect ratio'}
                 {(zone.backgroundMode || 'contain') === 'stretch' && 'Image/video stretches to fill zone, ignoring original aspect ratio'}
+                {(zone.backgroundMode || 'contain') === 'no-resizing' && 'Image/video displayed at original size from top-left corner, clipped to zone boundaries'}
               </small>
             </div>
           </>

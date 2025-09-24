@@ -191,6 +191,14 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           drawY = bgY
           break
           
+        case 'no-resizing':
+          // No resizing: display at original size from top-left corner
+          drawWidth = mediaWidth
+          drawHeight = mediaHeight
+          drawX = bgX
+          drawY = bgY
+          break
+          
         default:
           // Default to contain
           if (mediaRatio > targetRatio) {
