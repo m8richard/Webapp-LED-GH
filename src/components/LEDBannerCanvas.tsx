@@ -719,7 +719,8 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       }
       
       // Clean up expired overlay animations
-      for (const [key,] of overlayAnimationsRef.current.entries()) {
+      const now = Date.now()
+      for (const [key, animation] of overlayAnimationsRef.current.entries()) {
         const messageId = key.split('-')[0]
         const message = temporaryMessages.find(msg => msg.id === messageId)
         if (!message || new Date(message.expires_at) <= new Date()) {
