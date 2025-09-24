@@ -464,7 +464,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       ctx.restore()
     }
 
-    const drawTemporaryMessage = (message: TemporaryMessage, zoneId: number, yPosition: number, currentTime: number) => {
+    const drawTemporaryMessageOverlay = (message: TemporaryMessage, zoneId: number, yPosition: number, currentTime: number) => {
       const animationState = messageAnimationStateRef.current[message.id]
       if (!animationState) {
         // Initialize animation state
@@ -472,7 +472,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           startTime: currentTime,
           scrollOffset: CANVAS_WIDTH // Start from right edge
         }
-        console.log(`🎬 Starting animation for message: "${message.message}" (${message.duration}s duration)`)
+        console.log(`🎬 Starting overlay animation for message: "${message.message}" (${message.duration}s duration)`)
         return
       }
 
@@ -489,17 +489,25 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       ctx.rect(0, yPosition, width, ZONE_HEIGHT)
       ctx.clip()
 
-      // Draw semi-transparent background
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
-      ctx.fillRect(0, yPosition, width, ZONE_HEIGHT)
-
-      // Set text properties
+      // Set text properties for overlay
       const fontSize = 48
       const fontFamily = getFontFamily('HelveticaBoldExtended')
       ctx.font = `bold ${fontSize}px ${fontFamily}`
-      ctx.fillStyle = '#ffffff' // White text for contrast
       
+      // Create text with outline for better visibility over any background
       const textY = yPosition + (ZONE_HEIGHT / 2) + (fontSize / 3)
+      
+      // Function to draw text with outline
+      const drawTextWithOutline = (text: string, x: number, y: number, alpha: number = 1) => {
+        ctx.globalAlpha = alpha
+        // Draw black outline
+        ctx.strokeStyle = '#000000'
+        ctx.lineWidth = 4
+        ctx.strokeText(text, x, y)
+        // Draw white fill
+        ctx.fillStyle = '#ffffff'
+        ctx.fillText(text, x, y)
+      }
 
       if (message.animation === 'scroll') {
         // Scrolling animation - use zone's speed or default
@@ -519,7 +527,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         for (let i = 0; i < instancesNeeded; i++) {
           const x = textX + (i * totalWidth)
           if (x > -textWidth && x < width + textWidth) {
-            ctx.fillText(message.message, x, textY)
+            drawTextWithOutline(message.message, x, textY)
           }
         }
       } else if (message.animation === 'fade') {
@@ -533,12 +541,10 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           opacity = Math.max(0, (message.duration - elapsed) / fadeTime)
         }
         
-        ctx.globalAlpha = opacity
-        
         // Center the text
         const textWidth = ctx.measureText(message.message).width
         const textX = (width - textWidth) / 2
-        ctx.fillText(message.message, textX, textY)
+        drawTextWithOutline(message.message, textX, textY, opacity)
       } else if (message.animation === 'slide') {
         // Slide animation
         const textWidth = ctx.measureText(message.message).width
@@ -555,12 +561,12 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           textX = textX - (textX + textWidth) * progress
         }
         
-        ctx.fillText(message.message, textX, textY)
+        drawTextWithOutline(message.message, textX, textY)
       } else {
         // No animation - just center
         const textWidth = ctx.measureText(message.message).width
         const textX = (width - textWidth) / 2
-        ctx.fillText(message.message, textX, textY)
+        drawTextWithOutline(message.message, textX, textY)
       }
 
       ctx.restore()
@@ -722,10 +728,10 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           console.log('🔄 Current temporaryMessages:', temporaryMessages)
         }
         
-        // Check for temporary messages on this zone
+        // Draw temporary message overlay on top of zone content (non-destructive)
         const temporaryMessage = getActiveTemporaryMessageForZone(zone.id, currentTime)
         if (temporaryMessage) {
-          drawTemporaryMessage(temporaryMessage, zone.id, yPosition, currentTime)
+          drawTemporaryMessageOverlay(temporaryMessage, zone.id, yPosition, currentTime)
         }
       }
       
@@ -739,11 +745,34 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           // Update main line scroll offset
           scrollOffsetsRef.current[index] -= actualSpeed
           
+          // Reset main scroll offset for continuous scrolling
+          // We need to measure text here for reset logic
+          ctx.font = `bold ${(zone.lineMode || 'single') === 'single' ? 48 : 32}px ${getFontFamily(zone.font)}`
+          const zoneText = zone.forceUppercase ? zone.text.toUpperCase() : zone.text
+          const textWidth = ctx.measureText(zoneText).width
+          const spacing = (zone.lineMode || 'single') === 'single' ? 50 : 40
+          const totalWidth = textWidth + spacing
+          
+          if (scrollOffsetsRef.current[index] <= -totalWidth) {
+            scrollOffsetsRef.current[index] = 0
+          }
+          
           // Update sub-line scroll offset for double line mode
           if ((zone.lineMode || 'single') === 'double' && zone.subZone) {
             const subPixelsPerSecond = zone.subZone.speed * 60
             const subActualSpeed = (subPixelsPerSecond * deltaTime) / 1000
             subScrollOffsetsRef.current[index] -= subActualSpeed
+            
+            // Reset sub-scroll offset for continuous scrolling (same logic as main line)
+            ctx.font = `bold 32px ${getFontFamily(zone.subZone.font || zone.font)}`
+            const subZoneText = zone.forceUppercase ? zone.subZone.text.toUpperCase() : zone.subZone.text
+            const subTextWidth = ctx.measureText(subZoneText).width
+            const subSpacing = 40
+            const subTotalWidth = subTextWidth + subSpacing
+            
+            if (subScrollOffsetsRef.current[index] <= -subTotalWidth) {
+              subScrollOffsetsRef.current[index] = 0
+            }
           }
         })
       }
