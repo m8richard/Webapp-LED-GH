@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Zone } from '../lib/supabase'
+import { Zone, TemporaryMessage, supabase } from '../lib/supabase'
 import { loadAllFonts, getFontFamily } from '../lib/fonts'
 import { generateInfographicElements, InfographicElement, getCS2PlayerData, CS2PlayerData } from '../lib/infographics'
 import './LEDBannerCanvas.css'
@@ -21,6 +21,8 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
   const infographicTimerRef = useRef<Record<number, number>>({})
   const logoImagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
   const cs2PlayerDataRef = useRef<Record<number, CS2PlayerData[]>>({})
+  const [temporaryMessages, setTemporaryMessages] = useState<TemporaryMessage[]>([])
+  const overlayAnimationsRef = useRef<Map<string, { startTime: number, animationType: string, progress: number }>>(new Map())
 
   const CANVAS_WIDTH = 1056
   const CANVAS_HEIGHT = 384
@@ -68,8 +70,44 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       }
     }
 
+    // Fetch active temporary messages
+    const fetchTemporaryMessages = async () => {
+      const now = new Date().toISOString()
+      const { data, error } = await supabase
+        .from('temporary_messages')
+        .select('*')
+        .eq('is_active', true)
+        .gt('expires_at', now)
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Error fetching temporary messages:', error)
+        return
+      }
+      
+      setTemporaryMessages(data || [])
+    }
+
     initializeInfographics()
     initializeCS2Data()
+    fetchTemporaryMessages()
+
+    // Subscribe to temporary messages changes
+    const messagesSubscription = supabase
+      .channel('temporary_messages_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'temporary_messages' },
+        () => {
+          fetchTemporaryMessages()
+        }
+      )
+      .subscribe()
+
+    // Clean up expired messages every 5 seconds
+    const cleanupInterval = setInterval(() => {
+      const now = new Date().toISOString()
+      setTemporaryMessages(prev => prev.filter(msg => msg.expires_at > now))
+    }, 5000)
 
     const loadBackgroundElement = (zone: Zone): Promise<HTMLImageElement | HTMLVideoElement | null> => {
       return new Promise((resolve) => {
@@ -449,6 +487,80 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       ctx.restore()
     }
 
+    const drawTemporaryMessage = (message: TemporaryMessage, zone: Zone, yPosition: number) => {
+      const width = zone.id === 4 ? 864 : CANVAS_WIDTH
+      const currentZoneHeight = ZONE_HEIGHT
+      const overlayKey = `${message.id}-${zone.id}`
+      
+      // Initialize animation if not exists
+      if (!overlayAnimationsRef.current.has(overlayKey)) {
+        overlayAnimationsRef.current.set(overlayKey, {
+          startTime: Date.now(),
+          animationType: message.animation,
+          progress: 0
+        })
+      }
+      
+      const overlayAnimation = overlayAnimationsRef.current.get(overlayKey)!
+      const elapsed = Date.now() - overlayAnimation.startTime
+      const animationDuration = 500 // Animation duration in ms
+      overlayAnimation.progress = Math.min(elapsed / animationDuration, 1)
+      
+      ctx.save()
+      
+      // Semi-transparent overlay background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
+      ctx.fillRect(0, yPosition, width, currentZoneHeight)
+      
+      // Apply animation effects
+      let alpha = 1
+      let translateX = 0
+      let translateY = 0
+      
+      switch (message.animation) {
+        case 'fade':
+          alpha = overlayAnimation.progress
+          break
+        case 'slide':
+          translateX = (1 - overlayAnimation.progress) * width
+          break
+        case 'scroll':
+          // Scrolling temporary message
+          const fontSize = 48
+          ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
+          const textWidth = ctx.measureText(message.message).width
+          const scrollSpeed = zone.speed * 60 // Convert zone speed to pixels per second
+          const scrollOffset = (elapsed * scrollSpeed) / 1000
+          translateX = width - (scrollOffset % (textWidth + width))
+          break
+        case 'none':
+        default:
+          break
+      }
+      
+      // Apply transformations
+      ctx.globalAlpha = alpha
+      ctx.translate(translateX, translateY)
+      
+      // Draw temporary message text
+      const fontSize = 42
+      ctx.font = `bold ${fontSize}px ${getFontFamily(zone.font)}`
+      ctx.fillStyle = zone.color
+      ctx.textAlign = message.animation === 'scroll' ? 'left' : 'center'
+      
+      const textX = message.animation === 'scroll' ? 0 : width / 2
+      const textY = yPosition + (currentZoneHeight / 2) + (fontSize / 3)
+      
+      // Clip to zone boundaries
+      ctx.beginPath()
+      ctx.rect(0, yPosition, width, currentZoneHeight)
+      ctx.clip()
+      
+      ctx.fillText(message.message, textX, textY)
+      
+      ctx.restore()
+    }
+
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
       const width = zone.id === 4 ? 864 : CANVAS_WIDTH // Zone 4 is smaller
       const currentZoneHeight = ZONE_HEIGHT
@@ -575,6 +687,16 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         const zone = zones[index]
         const yPosition = index * ZONE_HEIGHT
         await drawZone(zone, yPosition, scrollOffsetsRef.current[index], subScrollOffsetsRef.current[index])
+        
+        // Draw temporary message overlay if exists for this zone
+        const activeMessage = temporaryMessages.find(msg => 
+          msg.zones.includes(zone.id) && 
+          new Date(msg.expires_at) > new Date()
+        )
+        
+        if (activeMessage) {
+          drawTemporaryMessage(activeMessage, zone, yPosition)
+        }
       }
       
       // Update scroll offsets with time-based animation
@@ -596,6 +718,16 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         })
       }
       
+      // Clean up expired overlay animations
+      const now = Date.now()
+      for (const [key, animation] of overlayAnimationsRef.current.entries()) {
+        const messageId = key.split('-')[0]
+        const message = temporaryMessages.find(msg => msg.id === messageId)
+        if (!message || new Date(message.expires_at) <= new Date()) {
+          overlayAnimationsRef.current.delete(key)
+        }
+      }
+      
       animationRef.current = requestAnimationFrame(animate)
     }
 
@@ -605,6 +737,8 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
+      messagesSubscription.unsubscribe()
+      clearInterval(cleanupInterval)
     }
   }, [zones, isAnimating])
 

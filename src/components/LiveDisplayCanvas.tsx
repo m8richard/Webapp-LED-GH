@@ -503,17 +503,19 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       const textY = yPosition + (ZONE_HEIGHT / 2) + (fontSize / 3)
 
       if (message.animation === 'scroll') {
-        // Scrolling animation
+        // Scrolling animation - use zone's speed or default
         const textWidth = ctx.measureText(message.message).width
-        const speed = 120 // pixels per second
-        const totalDistance = width + textWidth
-        const progress = (elapsed / message.duration) * totalDistance
-        const textX = width - progress
+        const zone = zones.find(z => z.id === zoneId)
+        const scrollSpeed = zone ? zone.speed * 60 : 120 // Convert zone speed to pixels per second
+        
+        // Calculate position based on actual scroll speed, not duration
+        const distanceTraveled = scrollSpeed * elapsed
+        const textX = width - distanceTraveled
 
         // Draw multiple instances for continuous scroll
         const spacing = 50
         const totalWidth = textWidth + spacing
-        const instancesNeeded = Math.ceil((width + totalWidth) / totalWidth) + 1
+        const instancesNeeded = Math.ceil((width + totalWidth + Math.abs(textX)) / totalWidth) + 2
         
         for (let i = 0; i < instancesNeeded; i++) {
           const x = textX + (i * totalWidth)
