@@ -135,14 +135,20 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Insert temporary message into database - simple insertion-based system
+    // Calculate expiry time
+    const now = new Date()
+    const expiresAt = new Date(now.getTime() + (durationSeconds * 1000))
+
+    // Insert temporary message into database
     const { data, error } = await supabase
       .from('temporary_messages')
       .insert({
         zones: zones,
         message: decodeURIComponent(message),
         duration: durationSeconds,
-        animation: animation
+        animation: animation,
+        expires_at: expiresAt.toISOString(),
+        is_active: true
       })
       .select()
       .single()
@@ -171,7 +177,9 @@ serve(async (req) => {
           zones: data.zones,
           message: data.message,
           duration: data.duration,
-          animation: data.animation
+          animation: data.animation,
+          expires_at: data.expires_at,
+          created_at: data.created_at
         }
       }),
       { 

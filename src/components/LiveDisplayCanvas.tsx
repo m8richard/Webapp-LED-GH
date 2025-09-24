@@ -472,15 +472,16 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           startTime: currentTime,
           scrollOffset: CANVAS_WIDTH // Start from right edge
         }
-        console.log(`🎬 Starting animation for message: "${message.message}" (${message.duration}s duration)`)
         return
       }
 
       const elapsed = (currentTime - animationState.startTime) / 1000 // Convert to seconds
       const width = zoneId === 4 ? 864 : CANVAS_WIDTH
 
-      // Duration check is now handled in getActiveTemporaryMessageForZone
-      // This function only handles rendering for active messages
+      // Check if message expired
+      if (elapsed >= message.duration) {
+        return
+      }
 
       ctx.save()
       
@@ -566,37 +567,17 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       ctx.restore()
     }
 
-    const getActiveTemporaryMessageForZone = (zoneId: number, currentTime: number): TemporaryMessage | null => {
-      const validMessages = temporaryMessages
-        .filter(msg => msg.zones.includes(zoneId))
-        .filter(msg => {
-          // Duration-based filtering - pure insertion system
-          const animationState = messageAnimationStateRef.current[msg.id]
-          if (!animationState) {
-            console.log(`🆕 New message ready to display: "${msg.message}" (${msg.duration}s)`)
-            return true // New message, should be displayed
-          }
-          
-          const elapsed = (currentTime - animationState.startTime) / 1000
-          const stillActive = elapsed < msg.duration
-          
-          if (!stillActive) {
-            // Clean up expired animation state and remove from memory
-            delete messageAnimationStateRef.current[msg.id]
-            console.log(`⏰ Message "${msg.message}" duration expired after ${elapsed}s`)
-            // Remove expired message from state
-            setTemporaryMessages(prev => prev.filter(m => m.id !== msg.id))
-          }
-          
-          return stillActive
-        })
-        .reverse() // Most recent message first (latest insertion)
+    const getActiveTemporaryMessageForZone = (zoneId: number): TemporaryMessage | null => {
+      const activeMessages = temporaryMessages
+        .filter(msg => msg.zones.includes(zoneId) && msg.is_active)
+        .filter(msg => new Date(msg.expires_at) > new Date())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       
-      if (validMessages.length > 0) {
-        console.log(`🎯 Displaying message for zone ${zoneId}:`, validMessages[0])
+      if (activeMessages.length > 0) {
+        console.log(`🎯 Active message found for zone ${zoneId}:`, activeMessages[0])
       }
       
-      return validMessages[0] || null // Return the most recent message
+      return activeMessages[0] || null // Return the most recent message
     }
 
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
@@ -723,7 +704,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         }
         
         // Check for temporary messages on this zone
-        const temporaryMessage = getActiveTemporaryMessageForZone(zone.id, currentTime)
+        const temporaryMessage = getActiveTemporaryMessageForZone(zone.id)
         if (temporaryMessage) {
           drawTemporaryMessage(temporaryMessage, zone.id, yPosition, currentTime)
         }
@@ -760,31 +741,77 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
     }
   }, [zones, isAnimating, temporaryMessages])
 
-  // Temporary messages subscription - insertion-based system
+  // Temporary messages subscription
   useEffect(() => {
-    // Start with empty state - only show messages from new insertions
-    console.log('🚀 Starting insertion-based temporary message system')
-    setTemporaryMessages([])
+    const fetchActiveMessages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('temporary_messages')
+          .select('*')
+          .eq('is_active', true)
+          .gte('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          console.error('Error fetching temporary messages:', error)
+        } else {
+          console.log('Initial temporary messages loaded:', data)
+          setTemporaryMessages(data || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch temporary messages:', err)
+      }
+    }
+
+    fetchActiveMessages()
 
     // Subscribe to real-time changes
     const subscription = supabase
       .channel('temporary_messages_realtime')
       .on('postgres_changes', {
-        event: 'INSERT',
+        event: '*',
         schema: 'public',
         table: 'temporary_messages'
       }, (payload) => {
-        console.log('📨 New temporary message INSERT:', payload)
+        console.log('📨 Temporary message real-time update:', payload)
         
-        const newMessage = payload.new as TemporaryMessage
-        console.log('📥 INSERT event received:', newMessage)
-        // Add every new message immediately - pure insertion-based system
-        setTemporaryMessages(prev => {
-          const updated = [...prev, newMessage]
-          console.log('📋 Updated temporaryMessages state:', updated)
-          return updated
-        })
-        console.log(`✅ New temporary message added: "${newMessage.message}" for ${newMessage.duration}s`)
+        if (payload.eventType === 'INSERT') {
+          const newMessage = payload.new as TemporaryMessage
+          console.log('📥 INSERT event received:', newMessage)
+          if (newMessage.is_active && new Date(newMessage.expires_at) > new Date()) {
+            setTemporaryMessages(prev => {
+              const updated = [...prev, newMessage]
+              console.log('📋 Updated temporaryMessages state:', updated)
+              return updated
+            })
+            console.log('✅ New temporary message added:', newMessage)
+          } else {
+            console.log('❌ Message not added - inactive or expired:', {
+              is_active: newMessage.is_active,
+              expires_at: newMessage.expires_at,
+              now: new Date().toISOString()
+            })
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedMessage = payload.new as TemporaryMessage
+          if (!updatedMessage.is_active || new Date(updatedMessage.expires_at) <= new Date()) {
+            // Message expired or deactivated
+            setTemporaryMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id))
+            delete messageAnimationStateRef.current[updatedMessage.id]
+            console.log('🗑️ Temporary message removed:', updatedMessage.id)
+          } else {
+            // Update existing message
+            setTemporaryMessages(prev => prev.map(msg => 
+              msg.id === updatedMessage.id ? updatedMessage : msg
+            ))
+            console.log('🔄 Temporary message updated:', updatedMessage.id)
+          }
+        } else if (payload.eventType === 'DELETE') {
+          const deletedMessage = payload.old as TemporaryMessage
+          setTemporaryMessages(prev => prev.filter(msg => msg.id !== deletedMessage.id))
+          delete messageAnimationStateRef.current[deletedMessage.id]
+          console.log('❌ Temporary message deleted:', deletedMessage.id)
+        }
       })
       .subscribe((status, err) => {
         console.log('📡 Temporary messages subscription status:', status)
@@ -793,10 +820,25 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         }
       })
 
-    // No cleanup interval needed - messages auto-expire by duration in render loop
+    // Clean up expired messages every 5 seconds
+    const cleanupInterval = setInterval(() => {
+      const now = new Date()
+      setTemporaryMessages(prev => {
+        const stillActive = prev.filter(msg => {
+          const isExpired = new Date(msg.expires_at) <= now
+          if (isExpired) {
+            delete messageAnimationStateRef.current[msg.id]
+            console.log('⏰ Message expired:', msg.id)
+          }
+          return !isExpired && msg.is_active
+        })
+        return stillActive
+      })
+    }, 5000)
 
     return () => {
       subscription.unsubscribe()
+      clearInterval(cleanupInterval)
     }
   }, [])
 

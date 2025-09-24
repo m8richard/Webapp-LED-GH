@@ -60,6 +60,9 @@ export interface TemporaryMessage {
   message: string
   duration: number // Duration in seconds
   animation: 'fade' | 'slide' | 'scroll' | 'none'
+  created_at: string
+  expires_at: string
+  is_active: boolean
 }
 
 // Helper functions
