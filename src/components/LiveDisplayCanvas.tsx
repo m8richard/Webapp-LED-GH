@@ -573,10 +573,6 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         .filter(msg => new Date(msg.expires_at) > new Date())
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       
-      if (activeMessages.length > 0) {
-        console.log(`🎯 Active message found for zone ${zoneId}:`, activeMessages[0])
-      }
-      
       return activeMessages[0] || null // Return the most recent message
     }
 
@@ -698,11 +694,6 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         const yPosition = index * ZONE_HEIGHT
         await drawZone(zone, yPosition, scrollOffsetsRef.current[index], subScrollOffsetsRef.current[index])
         
-        // Debug: Log current temporary messages state periodically
-        if (index === 0 && Math.floor(currentTime / 5000) !== Math.floor(lastTimeRef.current / 5000)) {
-          console.log('🔄 Current temporaryMessages:', temporaryMessages)
-        }
-        
         // Check for temporary messages on this zone
         const temporaryMessage = getActiveTemporaryMessageForZone(zone.id)
         if (temporaryMessage) {
@@ -777,20 +768,9 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         
         if (payload.eventType === 'INSERT') {
           const newMessage = payload.new as TemporaryMessage
-          console.log('📥 INSERT event received:', newMessage)
           if (newMessage.is_active && new Date(newMessage.expires_at) > new Date()) {
-            setTemporaryMessages(prev => {
-              const updated = [...prev, newMessage]
-              console.log('📋 Updated temporaryMessages state:', updated)
-              return updated
-            })
+            setTemporaryMessages(prev => [...prev, newMessage])
             console.log('✅ New temporary message added:', newMessage)
-          } else {
-            console.log('❌ Message not added - inactive or expired:', {
-              is_active: newMessage.is_active,
-              expires_at: newMessage.expires_at,
-              now: new Date().toISOString()
-            })
           }
         } else if (payload.eventType === 'UPDATE') {
           const updatedMessage = payload.new as TemporaryMessage
