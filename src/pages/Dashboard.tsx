@@ -115,21 +115,29 @@ const Dashboard = () => {
 
     // Validate night mode if enabled
     if (nightMode.enabled) {
+      console.log('Validating night mode:', nightMode)
       const error = validateNightMode(nightMode)
+      console.log('Validation result:', error)
       if (error) {
         setNightModeError(error)
         return
       }
     }
+    
+    // Clear any previous errors
+    setNightModeError('')
 
     try {
       setSaving(true)
+      console.log('About to save profile with night mode:', nightMode)
       
       if (selectedProfile) {
         // Updating existing profile - use updateProfileById
+        console.log('Updating existing profile:', selectedProfile.id)
         await ProfileService.updateProfileById(selectedProfile.id, newProfileName.trim(), currentZones, nightMode)
       } else {
         // Creating new profile - use saveProfile
+        console.log('Creating new profile')
         await ProfileService.saveProfile(user.email, newProfileName.trim(), currentZones, nightMode)
       }
       
@@ -139,6 +147,7 @@ const Dashboard = () => {
       alert('Profile saved successfully!')
     } catch (error) {
       console.error('Error saving profile:', error)
+      console.error('Error details:', error)
       alert('Error saving profile. Please try again.')
     } finally {
       setSaving(false)

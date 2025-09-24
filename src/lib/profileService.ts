@@ -31,7 +31,8 @@ export class ProfileService {
   }
 
   static async saveProfile(userEmail: string, profileName: string, zones: Zone[], nightMode?: NightMode): Promise<BannerProfile> {
-    const { data, error } = await supabase
+    // Try saving with night_mode first
+    let { data, error } = await supabase
       .from('led_banner_settings')
       .upsert({
         user_email: userEmail,
@@ -45,6 +46,26 @@ export class ProfileService {
       .select()
       .single()
 
+    // If night_mode column doesn't exist, try without it
+    if (error && error.message?.includes('night_mode')) {
+      console.warn('night_mode column not found, saving without it:', error.message)
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('led_banner_settings')
+        .upsert({
+          user_email: userEmail,
+          profile_name: profileName,
+          zones_data: zones,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_email,profile_name'
+        })
+        .select()
+        .single()
+      
+      data = fallbackData
+      error = fallbackError
+    }
+
     if (error) {
       console.error('Error saving profile:', error)
       throw error
@@ -54,7 +75,8 @@ export class ProfileService {
   }
 
   static async updateProfileById(profileId: string, profileName: string, zones: Zone[], nightMode?: NightMode): Promise<BannerProfile> {
-    const { data, error } = await supabase
+    // Try updating with night_mode first
+    let { data, error } = await supabase
       .from('led_banner_settings')
       .update({
         profile_name: profileName,
@@ -65,6 +87,24 @@ export class ProfileService {
       .eq('id', profileId)
       .select()
       .single()
+
+    // If night_mode column doesn't exist, try without it
+    if (error && error.message?.includes('night_mode')) {
+      console.warn('night_mode column not found, updating without it:', error.message)
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('led_banner_settings')
+        .update({
+          profile_name: profileName,
+          zones_data: zones,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profileId)
+        .select()
+        .single()
+      
+      data = fallbackData
+      error = fallbackError
+    }
 
     if (error) {
       console.error('Error updating profile:', error)
