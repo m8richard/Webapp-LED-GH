@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Zone } from '../lib/supabase'
+import { Zone, TemporaryMessage, supabase } from '../lib/supabase'
 import { loadAllFonts, getFontFamily } from '../lib/fonts'
 import { generateInfographicElements, InfographicElement, getCS2PlayerData, CS2PlayerData } from '../lib/infographics'
 
@@ -20,6 +20,13 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
   const infographicTimerRef = useRef<Record<number, number>>({})
   const logoImagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
   const cs2PlayerDataRef = useRef<Record<number, CS2PlayerData[]>>({})
+  
+  // Temporary message system
+  const [temporaryMessages, setTemporaryMessages] = useState<TemporaryMessage[]>([])
+  const messageAnimationStateRef = useRef<Record<string, {
+    startTime: number
+    scrollOffset: number
+  }>>({})
   
   const defaultZones: Zone[] = [
     { id: 1, text: 'ZONE 1 👾', color: '#ff00ec', speed: 2, lineMode: 'single', backgroundType: 'none', backgroundMode: 'contain', font: 'HelveticaBoldExtended', displayMode: 'text' },
@@ -457,6 +464,116 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       ctx.restore()
     }
 
+    const drawTemporaryMessage = (message: TemporaryMessage, zoneId: number, yPosition: number, currentTime: number) => {
+      const animationState = messageAnimationStateRef.current[message.id]
+      if (!animationState) {
+        // Initialize animation state
+        messageAnimationStateRef.current[message.id] = {
+          startTime: currentTime,
+          scrollOffset: CANVAS_WIDTH // Start from right edge
+        }
+        return
+      }
+
+      const elapsed = (currentTime - animationState.startTime) / 1000 // Convert to seconds
+      const width = zoneId === 4 ? 864 : CANVAS_WIDTH
+
+      // Check if message expired
+      if (elapsed >= message.duration) {
+        return
+      }
+
+      ctx.save()
+      
+      // Set up clipping for the zone
+      ctx.beginPath()
+      ctx.rect(0, yPosition, width, ZONE_HEIGHT)
+      ctx.clip()
+
+      // Draw semi-transparent background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
+      ctx.fillRect(0, yPosition, width, ZONE_HEIGHT)
+
+      // Set text properties
+      const fontSize = 48
+      const fontFamily = getFontFamily('HelveticaBoldExtended')
+      ctx.font = `bold ${fontSize}px ${fontFamily}`
+      ctx.fillStyle = '#ffffff' // White text for contrast
+      
+      const textY = yPosition + (ZONE_HEIGHT / 2) + (fontSize / 3)
+
+      if (message.animation === 'scroll') {
+        // Scrolling animation
+        const textWidth = ctx.measureText(message.message).width
+        const speed = 120 // pixels per second
+        const totalDistance = width + textWidth
+        const progress = (elapsed / message.duration) * totalDistance
+        const textX = width - progress
+
+        // Draw multiple instances for continuous scroll
+        const spacing = 50
+        const totalWidth = textWidth + spacing
+        const instancesNeeded = Math.ceil((width + totalWidth) / totalWidth) + 1
+        
+        for (let i = 0; i < instancesNeeded; i++) {
+          const x = textX + (i * totalWidth)
+          if (x > -textWidth && x < width + textWidth) {
+            ctx.fillText(message.message, x, textY)
+          }
+        }
+      } else if (message.animation === 'fade') {
+        // Fade animation
+        let opacity = 1
+        const fadeTime = 0.5 // 0.5 second fade in/out
+        
+        if (elapsed < fadeTime) {
+          opacity = elapsed / fadeTime
+        } else if (elapsed > message.duration - fadeTime) {
+          opacity = Math.max(0, (message.duration - elapsed) / fadeTime)
+        }
+        
+        ctx.globalAlpha = opacity
+        
+        // Center the text
+        const textWidth = ctx.measureText(message.message).width
+        const textX = (width - textWidth) / 2
+        ctx.fillText(message.message, textX, textY)
+      } else if (message.animation === 'slide') {
+        // Slide animation
+        const textWidth = ctx.measureText(message.message).width
+        const slideTime = 0.5 // 0.5 second slide in/out
+        let textX = (width - textWidth) / 2
+        
+        if (elapsed < slideTime) {
+          // Slide in from right
+          const progress = elapsed / slideTime
+          textX = width + (textX - width) * progress
+        } else if (elapsed > message.duration - slideTime) {
+          // Slide out to left
+          const progress = (elapsed - (message.duration - slideTime)) / slideTime
+          textX = textX - (textX + textWidth) * progress
+        }
+        
+        ctx.fillText(message.message, textX, textY)
+      } else {
+        // No animation - just center
+        const textWidth = ctx.measureText(message.message).width
+        const textX = (width - textWidth) / 2
+        ctx.fillText(message.message, textX, textY)
+      }
+
+      ctx.restore()
+    }
+
+    const getActiveTemporaryMessageForZone = (zoneId: number): TemporaryMessage | null => {
+      const activeMessages = temporaryMessages
+        .filter(msg => msg.zones.includes(zoneId) && msg.is_active)
+        .filter(msg => new Date(msg.expires_at) > new Date())
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      
+      return activeMessages[0] || null // Return the most recent message
+    }
+
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
       const width = zone.id === 4 ? 864 : CANVAS_WIDTH
       const currentZoneHeight = ZONE_HEIGHT
@@ -574,6 +691,12 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         const zone = zones[index]
         const yPosition = index * ZONE_HEIGHT
         await drawZone(zone, yPosition, scrollOffsetsRef.current[index], subScrollOffsetsRef.current[index])
+        
+        // Check for temporary messages on this zone
+        const temporaryMessage = getActiveTemporaryMessageForZone(zone.id)
+        if (temporaryMessage) {
+          drawTemporaryMessage(temporaryMessage, zone.id, yPosition, currentTime)
+        }
       }
       
       // Update scroll offsets with time-based animation
@@ -605,7 +728,97 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [zones, isAnimating])
+  }, [zones, isAnimating, temporaryMessages])
+
+  // Temporary messages subscription
+  useEffect(() => {
+    const fetchActiveMessages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('temporary_messages')
+          .select('*')
+          .eq('is_active', true)
+          .gte('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          console.error('Error fetching temporary messages:', error)
+        } else {
+          console.log('Initial temporary messages loaded:', data)
+          setTemporaryMessages(data || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch temporary messages:', err)
+      }
+    }
+
+    fetchActiveMessages()
+
+    // Subscribe to real-time changes
+    const subscription = supabase
+      .channel('temporary_messages_realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'temporary_messages'
+      }, (payload) => {
+        console.log('📨 Temporary message real-time update:', payload)
+        
+        if (payload.eventType === 'INSERT') {
+          const newMessage = payload.new as TemporaryMessage
+          if (newMessage.is_active && new Date(newMessage.expires_at) > new Date()) {
+            setTemporaryMessages(prev => [...prev, newMessage])
+            console.log('✅ New temporary message added:', newMessage)
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const updatedMessage = payload.new as TemporaryMessage
+          if (!updatedMessage.is_active || new Date(updatedMessage.expires_at) <= new Date()) {
+            // Message expired or deactivated
+            setTemporaryMessages(prev => prev.filter(msg => msg.id !== updatedMessage.id))
+            delete messageAnimationStateRef.current[updatedMessage.id]
+            console.log('🗑️ Temporary message removed:', updatedMessage.id)
+          } else {
+            // Update existing message
+            setTemporaryMessages(prev => prev.map(msg => 
+              msg.id === updatedMessage.id ? updatedMessage : msg
+            ))
+            console.log('🔄 Temporary message updated:', updatedMessage.id)
+          }
+        } else if (payload.eventType === 'DELETE') {
+          const deletedMessage = payload.old as TemporaryMessage
+          setTemporaryMessages(prev => prev.filter(msg => msg.id !== deletedMessage.id))
+          delete messageAnimationStateRef.current[deletedMessage.id]
+          console.log('❌ Temporary message deleted:', deletedMessage.id)
+        }
+      })
+      .subscribe((status, err) => {
+        console.log('📡 Temporary messages subscription status:', status)
+        if (err) {
+          console.error('❌ Subscription error:', err)
+        }
+      })
+
+    // Clean up expired messages every 5 seconds
+    const cleanupInterval = setInterval(() => {
+      const now = new Date()
+      setTemporaryMessages(prev => {
+        const stillActive = prev.filter(msg => {
+          const isExpired = new Date(msg.expires_at) <= now
+          if (isExpired) {
+            delete messageAnimationStateRef.current[msg.id]
+            console.log('⏰ Message expired:', msg.id)
+          }
+          return !isExpired && msg.is_active
+        })
+        return stillActive
+      })
+    }, 5000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearInterval(cleanupInterval)
+    }
+  }, [])
 
   return (
     <div style={{ 

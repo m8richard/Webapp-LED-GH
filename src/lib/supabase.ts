@@ -53,6 +53,18 @@ export interface Zone {
   forceUppercase?: boolean // defaults to false - forces all text to uppercase
 }
 
+// Temporary message interface
+export interface TemporaryMessage {
+  id: string
+  zones: number[] // Array of zone IDs (e.g., [1,3,4])
+  message: string
+  duration: number // Duration in seconds
+  animation: 'fade' | 'slide' | 'scroll' | 'none'
+  created_at: string
+  expires_at: string
+  is_active: boolean
+}
+
 // Helper functions
 export const isValidGentlematesEmail = (email: string): boolean => {
   return email.endsWith('@gentlemates.com')
