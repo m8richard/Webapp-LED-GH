@@ -19,6 +19,26 @@ export interface NightMode {
   endNextDay: boolean
 }
 
+export interface TemporaryMessage {
+  id: string
+  message: string
+  zone: number[]
+  animation_type: 'fade' | 'slide' | 'drop'
+  duration: number
+  created_at: string
+}
+
+export interface ActiveMessage {
+  id: string
+  message: string
+  zoneId: number
+  animation_type: 'fade' | 'slide' | 'drop'
+  duration: number
+  startTime: number
+  isAnimatingIn: boolean
+  isAnimatingOut: boolean
+}
+
 export interface BannerProfile {
   id: string
   user_email: string

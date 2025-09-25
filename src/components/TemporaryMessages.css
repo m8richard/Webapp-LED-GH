@@ -1,0 +1,83 @@
+/* Temporary Messages Animations */
+
+/* Fade animations */
+.message-fade.animating-in {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out forwards;
+}
+
+.message-fade.displaying {
+  opacity: 1;
+}
+
+.message-fade.animating-out {
+  opacity: 1;
+  animation: fadeOut 0.5s ease-in-out forwards;
+}
+
+/* Slide animations */
+.message-slide.animating-in {
+  opacity: 1;
+  transform: translateX(100%);
+  animation: slideIn 0.5s ease-out forwards;
+}
+
+.message-slide.displaying {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.message-slide.animating-out {
+  opacity: 1;
+  transform: translateX(0);
+  animation: slideOut 0.5s ease-in forwards;
+}
+
+/* Drop animations */
+.message-drop.animating-in {
+  opacity: 1;
+  transform: translateY(-100%);
+  animation: dropIn 0.5s ease-out forwards;
+}
+
+.message-drop.displaying {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.message-drop.animating-out {
+  opacity: 1;
+  transform: translateY(0);
+  animation: dropOut 0.5s ease-in forwards;
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes dropIn {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes dropOut {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}

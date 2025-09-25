@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Zone } from '../lib/supabase'
 import { loadAllFonts, getFontFamily } from '../lib/fonts'
 import { generateInfographicElements, InfographicElement, getCS2PlayerData, CS2PlayerData } from '../lib/infographics'
+import TemporaryMessagesOverlay from './TemporaryMessagesOverlay'
 
 interface LiveDisplayCanvasProps {
   zones?: Zone[]
@@ -616,17 +617,20 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
       height: '100vh',
       background: '#000'
     }}>
-      <canvas
-        ref={canvasRef}
-        width={CANVAS_WIDTH}
-        height={CANVAS_HEIGHT}
-        style={{ 
-          display: 'block',
-          background: '#000',
-          width: `${CANVAS_WIDTH}px`,
-          height: `${CANVAS_HEIGHT}px`
-        }}
-      />
+      <div style={{ position: 'relative' }}>
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          style={{ 
+            display: 'block',
+            background: '#000',
+            width: `${CANVAS_WIDTH}px`,
+            height: `${CANVAS_HEIGHT}px`
+          }}
+        />
+        <TemporaryMessagesOverlay />
+      </div>
     </div>
   )
 }
