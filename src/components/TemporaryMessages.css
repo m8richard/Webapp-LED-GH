@@ -35,19 +35,22 @@
 
 /* Drop animations */
 .message-drop.animating-in {
-  opacity: 1;
-  transform: translateY(-100%);
+  opacity: 0;
+  transform: translateY(0) scaleY(0);
+  transform-origin: top;
   animation: dropIn 0.5s ease-out forwards;
 }
 
 .message-drop.displaying {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scaleY(1);
+  transform-origin: top;
 }
 
 .message-drop.animating-out {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scaleY(1);
+  transform-origin: bottom;
   animation: dropOut 0.5s ease-in forwards;
 }
 
@@ -73,11 +76,27 @@
 }
 
 @keyframes dropIn {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
+  from { 
+    transform: translateY(0) scaleY(0); 
+    transform-origin: top;
+    opacity: 0;
+  }
+  to { 
+    transform: translateY(0) scaleY(1); 
+    transform-origin: top;
+    opacity: 1;
+  }
 }
 
 @keyframes dropOut {
-  from { transform: translateY(0); }
-  to { transform: translateY(100%); }
+  from { 
+    transform: translateY(0) scaleY(1); 
+    transform-origin: bottom;
+    opacity: 1;
+  }
+  to { 
+    transform: translateY(0) scaleY(0); 
+    transform-origin: bottom;
+    opacity: 0;
+  }
 }
