@@ -75,7 +75,8 @@ export interface Zone {
 
 // Helper functions
 export const isValidGentlematesEmail = (email: string): boolean => {
-  return email.endsWith('@gentlemates.com')
+  return true // Temporarily disabled - any email allowed
+  // return email.endsWith('@gentlemates.com')
 }
 
 export const getCurrentUser = async () => {
