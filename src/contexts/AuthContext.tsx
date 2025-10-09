@@ -21,7 +21,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      setIsValidUser(currentUser?.email ? isValidGentlematesEmail(currentUser.email) : false)
+      setIsValidUser(currentUser?.email ? isValidGentlematesEmail() : false)
       setLoading(false)
     })
 
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null
       setUser(currentUser)
-      setIsValidUser(currentUser?.email ? isValidGentlematesEmail(currentUser.email) : false)
+      setIsValidUser(currentUser?.email ? isValidGentlematesEmail() : false)
       setLoading(false)
     })
 
