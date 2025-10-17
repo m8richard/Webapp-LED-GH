@@ -31,6 +31,8 @@ export default [
             'no-console': 'off',
             'no-return-await': 'off',
             'no-else-return': 'off',
+            'no-nested-ternary': 'off',
+            'no-use-before-define': 'off',
             'consistent-return': 'off',
             'spaced-comment': 'off',
             'import/named': 'off',
