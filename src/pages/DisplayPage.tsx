@@ -98,7 +98,7 @@ const DisplayPage = () => {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'cs_player_stats'
+        table: 'valorant_player_stats'
       }, (payload) => {
         console.log('🎯 CS2 player stats changed - FULL PAYLOAD:', JSON.stringify(payload, null, 2))
         console.log('🎯 Event type:', payload.eventType)
