@@ -451,9 +451,9 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
 
       // Draw all elements in sequence - center both lines vertically
       const centerY = yPosition + (height / 2)
-      const totalTextHeight = fontSize * 2 + lineSpacing
-      const line1Y = centerY - totalTextHeight / 2 + fontSize * 0.75
-      const line2Y = centerY + totalTextHeight / 2 - fontSize * 0.25
+      // Account for font baseline and visual balance
+      const line1Y = centerY - lineSpacing / 2 - fontSize * 0.15
+      const line2Y = centerY + lineSpacing / 2 + fontSize * 0.85
       let currentPosition = scrollOffset
 
       // Repeat the carousel to create seamless looping
@@ -532,9 +532,9 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
 
       // Draw all elements in sequence - center both lines vertically
       const centerY = yPosition + (height / 2)
-      const totalTextHeight = fontSize * 2 + lineSpacing
-      const line1Y = centerY - totalTextHeight / 2 + fontSize * 0.75
-      const line2Y = centerY + totalTextHeight / 2 - fontSize * 0.25
+      // Account for font baseline and visual balance
+      const line1Y = centerY - lineSpacing / 2 - fontSize * 0.15
+      const line2Y = centerY + lineSpacing / 2 + fontSize * 0.85
       let currentPosition = scrollOffset
 
       // Repeat the carousel to create seamless looping
