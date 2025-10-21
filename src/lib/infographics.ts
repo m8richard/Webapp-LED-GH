@@ -253,7 +253,7 @@ export const getCS2PlayerData = async (): Promise<CS2PlayerData[]> => {
     const { supabase } = await import('./supabase')
     
     const { data: playerData, error } = await supabase
-      .from('cs_player_stats')
+      .from('valorant_player_stats')
       .select('player_id, pseudo, matches_month, winrate_month, matches_week, winrate_week')
       .order('pseudo', { ascending: true })
     
