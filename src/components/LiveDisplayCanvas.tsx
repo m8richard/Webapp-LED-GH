@@ -419,60 +419,77 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         return
       }
 
-      const fontSize = 32
-      const elementSpacing = 200 // Space between different players
+      const fontSize = 28
+      const elementSpacing = 150 // Space between different players
       const cs2Font = 'VCR_OSD_MONO' // Use VCR font for CS2 mode
-      
+      const lineSpacing = 8 // Space between the two lines
+
       ctx.save()
       ctx.beginPath()
       ctx.rect(0, yPosition, width, height)
       ctx.clip()
-      
-      // Calculate total carousel width
+
+      // Calculate total carousel width based on the wider of the two lines
       let totalCarouselWidth = 0
-      const playerDisplayData: { player: CS2PlayerData, width: number }[] = []
-      
+      const playerDisplayData: { player: CS2PlayerData, width: number, line1: string, line2: string }[] = []
+
       for (const player of playerData) {
         ctx.font = `bold ${fontSize}px ${getFontFamily(cs2Font)}`
-        // Format: "pseudo | Month: XM Y% | Week: XM Y%"
-        const playerText = `${player.pseudo} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}% | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
-        const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
-        const textWidth = ctx.measureText(displayText).width
-        
-        playerDisplayData.push({ player, width: textWidth })
-        totalCarouselWidth += textWidth + elementSpacing
+
+        // Two-line format:
+        // Line 1: "pseudo - This week: X games Y%WR"
+        // Line 2: "This month: X games Y%WR"
+        const line1Text = `${player.pseudo} - This week: ${player.matches_week} games ${player.winrate_week}%WR`
+        const line2Text = `This month: ${player.matches_month} games ${player.winrate_month}%WR`
+
+        const line1Display = zone.forceUppercase ? line1Text.toUpperCase() : line1Text
+        const line2Display = zone.forceUppercase ? line2Text.toUpperCase() : line2Text
+
+        const line1Width = ctx.measureText(line1Display).width
+        const line2Width = ctx.measureText(line2Display).width
+        const maxWidth = Math.max(line1Width, line2Width)
+
+        playerDisplayData.push({
+          player,
+          width: maxWidth,
+          line1: line1Display,
+          line2: line2Display
+        })
+        totalCarouselWidth += maxWidth + elementSpacing
       }
-      
-      // Draw all elements in sequence
-      const textY = yPosition + (height / 2) + (fontSize / 3)
+
+      // Draw all elements in sequence - center both lines vertically
+      const centerY = yPosition + (height / 2)
+      const totalTextHeight = fontSize * 2 + lineSpacing
+      const line1Y = centerY - totalTextHeight / 2 + fontSize * 0.75
+      const line2Y = centerY + totalTextHeight / 2 - fontSize * 0.25
       let currentPosition = scrollOffset
-      
+
       // Repeat the carousel to create seamless looping
       const numRepeats = Math.ceil((width + Math.abs(scrollOffset)) / totalCarouselWidth) + 1
-      
+
       for (let repeat = 0; repeat < numRepeats; repeat++) {
         let elementX = currentPosition
-        
+
         for (let i = 0; i < playerDisplayData.length; i++) {
-          const { player, width: playerWidth } = playerDisplayData[i]
-          
+          const { width: playerWidth, line1, line2 } = playerDisplayData[i]
+
           // Skip if element is completely off screen
           if (elementX > width || elementX + playerWidth < 0) {
             elementX += playerWidth + elementSpacing
             continue
           }
-          
+
           ctx.fillStyle = zone.color
-          const playerText = `${player.pseudo} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}% | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
-          const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
-          ctx.fillText(displayText, elementX, textY)
-          
+          ctx.fillText(line1, elementX, line1Y)
+          ctx.fillText(line2, elementX, line2Y)
+
           elementX += playerWidth + elementSpacing
         }
-        
+
         currentPosition += totalCarouselWidth
       }
-      
+
       ctx.restore()
     }
 
@@ -483,32 +500,50 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         return
       }
 
-      const fontSize = 32
-      const elementSpacing = 200 // Space between different players
+      const fontSize = 28
+      const elementSpacing = 150 // Space between different players
       const valorantFont = 'VCR_OSD_MONO' // Use VCR font for Valorant mode
+      const lineSpacing = 8 // Space between the two lines
 
       ctx.save()
       ctx.beginPath()
       ctx.rect(0, yPosition, width, height)
       ctx.clip()
 
-      // Calculate total carousel width
+      // Calculate total carousel width based on the wider of the two lines
       let totalCarouselWidth = 0
-      const playerDisplayData: { player: ValorantPlayerData, width: number }[] = []
+      const playerDisplayData: { player: ValorantPlayerData, width: number, line1: string, line2: string }[] = []
 
       for (const player of playerData) {
         ctx.font = `bold ${fontSize}px ${getFontFamily(valorantFont)}`
-        // Format: "player | Month: XM Y% K/D Z.Z | Week: XM Y%"
-        const playerText = `${player.player_name} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}%, K/D: ${player.kd_ratio_month} | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
-        const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
-        const textWidth = ctx.measureText(displayText).width
 
-        playerDisplayData.push({ player, width: textWidth })
-        totalCarouselWidth += textWidth + elementSpacing
+        // Two-line format:
+        // Line 1: "player_name - This week: X games Y%WR"
+        // Line 2: "This month: X games Y%WR Z.ZK/D"
+        const line1Text = `${player.player_name} - This week: ${player.matches_week} games ${player.winrate_week}%WR`
+        const line2Text = `This month: ${player.matches_month} games ${player.winrate_month}%WR ${player.kd_ratio_month}K/D`
+
+        const line1Display = zone.forceUppercase ? line1Text.toUpperCase() : line1Text
+        const line2Display = zone.forceUppercase ? line2Text.toUpperCase() : line2Text
+
+        const line1Width = ctx.measureText(line1Display).width
+        const line2Width = ctx.measureText(line2Display).width
+        const maxWidth = Math.max(line1Width, line2Width)
+
+        playerDisplayData.push({
+          player,
+          width: maxWidth,
+          line1: line1Display,
+          line2: line2Display
+        })
+        totalCarouselWidth += maxWidth + elementSpacing
       }
 
-      // Draw all elements in sequence
-      const textY = yPosition + (height / 2) + (fontSize / 3)
+      // Draw all elements in sequence - center both lines vertically
+      const centerY = yPosition + (height / 2)
+      const totalTextHeight = fontSize * 2 + lineSpacing
+      const line1Y = centerY - totalTextHeight / 2 + fontSize * 0.75
+      const line2Y = centerY + totalTextHeight / 2 - fontSize * 0.25
       let currentPosition = scrollOffset
 
       // Repeat the carousel to create seamless looping
@@ -518,7 +553,7 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
         let elementX = currentPosition
 
         for (let i = 0; i < playerDisplayData.length; i++) {
-          const { player, width: playerWidth } = playerDisplayData[i]
+          const { width: playerWidth, line1, line2 } = playerDisplayData[i]
 
           // Skip if element is completely off screen
           if (elementX > width || elementX + playerWidth < 0) {
@@ -527,9 +562,8 @@ const LiveDisplayCanvas = ({ zones: propZones }: LiveDisplayCanvasProps) => {
           }
 
           ctx.fillStyle = zone.color
-          const playerText = `${player.player_name} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}%, K/D: ${player.kd_ratio_month} | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
-          const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
-          ctx.fillText(displayText, elementX, textY)
+          ctx.fillText(line1, elementX, line1Y)
+          ctx.fillText(line2, elementX, line2Y)
 
           elementX += playerWidth + elementSpacing
         }

@@ -371,8 +371,8 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
             <li>🎮 Data from cs_player_stats table</li>
           </ul>
           <p className="infographics-note">
-            <strong>Note:</strong> Uses 10Pixel Bold font. Data is fetched live from the cs_player_stats table.
-            Format: "pseudo | Month: XM Y% | Week: XM Y%"
+            <strong>Note:</strong> Uses VCR_OSD_MONO font. Data is fetched live from the cs_player_stats table.
+            Format (two lines): Line 1: "pseudo - This week: X games Y%WR" | Line 2: "This month: X games Y%WR"
           </p>
 
           <div className="form-group">
@@ -438,8 +438,8 @@ const ZoneEditor = ({ zone, onUpdate }: ZoneEditorProps) => {
             <li>🎮 Data from valorant_player_stats table</li>
           </ul>
           <p className="infographics-note">
-            <strong>Note:</strong> Uses 10Pixel Bold font. Data is fetched live from the valorant_player_stats table.
-            Format: "player | Month: XM Y% K/D Z.Z | Week: XM Y%"
+            <strong>Note:</strong> Uses VCR_OSD_MONO font. Data is fetched live from the valorant_player_stats table.
+            Format (two lines): Line 1: "player - This week: X games Y%WR" | Line 2: "This month: X games Y%WR Z.ZK/D"
           </p>
 
           <div className="form-group">
