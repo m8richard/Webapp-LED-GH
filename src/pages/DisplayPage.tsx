@@ -54,7 +54,7 @@ const DisplayPage = () => {
           .from('cs_player_stats')
           .select('*')
           .limit(1)
-        
+
         if (error) {
           console.error('❌ Cannot access cs_player_stats:', error)
         } else {
@@ -65,7 +65,27 @@ const DisplayPage = () => {
       }
     }
 
+    // Test if we can read valorant_player_stats table
+    const testValorantAccess = async () => {
+      try {
+        console.log('🧪 Testing access to valorant_player_stats table...')
+        const { data, error } = await supabase
+          .from('valorant_player_stats')
+          .select('*')
+          .limit(1)
+
+        if (error) {
+          console.error('❌ Cannot access valorant_player_stats:', error)
+        } else {
+          console.log('✅ valorant_player_stats accessible, sample data:', data)
+        }
+      } catch (err) {
+        console.error('❌ Exception accessing valorant_player_stats:', err)
+      }
+    }
+
     testCS2Access()
+    testValorantAccess()
 
     // Subscribe to changes in active profile
     console.log('Setting up real-time subscriptions...')
@@ -117,9 +137,36 @@ const DisplayPage = () => {
         }
       })
 
+    // Separate subscription for Valorant player stats
+    console.log('Setting up Valorant stats subscription...')
+    const valorantSubscription = supabase
+      .channel('valorant_stats_changes') // Different channel name
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'valorant_player_stats'
+      }, (payload) => {
+        console.log('🎯 Valorant player stats changed - FULL PAYLOAD:', JSON.stringify(payload, null, 2))
+        console.log('🎯 Event type:', payload.eventType)
+        console.log('🎯 Table:', payload.table)
+        console.log('🎯 Schema:', payload.schema)
+        console.log('🔄 Valorant stats updated, refreshing display...')
+        window.location.reload()
+      })
+      .subscribe((status, err) => {
+        console.log('📡 Valorant subscription status:', status)
+        if (err) {
+          console.error('❌ Valorant subscription error:', err)
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Valorant subscription active')
+        }
+      })
+
     return () => {
       subscription.unsubscribe()
       cs2Subscription.unsubscribe()
+      valorantSubscription.unsubscribe()
     }
   }, [])
 

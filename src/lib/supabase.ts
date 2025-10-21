@@ -69,7 +69,7 @@ export interface Zone {
   backgroundUrl?: string
   backgroundMode?: 'contain' | 'cover' | 'fill' | 'stretch' | 'no-resizing' // defaults to 'contain'
   font?: string // defaults to 'HelveticaBoldExtended'
-  displayMode?: 'text' | 'infographics' | 'cs2-data' // defaults to 'text'
+  displayMode?: 'text' | 'infographics' | 'cs2-data' | 'valorant-data' // defaults to 'text'
   forceUppercase?: boolean // defaults to false - forces all text to uppercase
 }
 

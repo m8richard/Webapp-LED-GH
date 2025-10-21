@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Zone } from '../lib/supabase'
 import { loadAllFonts, getFontFamily } from '../lib/fonts'
-import { generateInfographicElements, InfographicElement, getCS2PlayerData, CS2PlayerData } from '../lib/infographics'
+import { generateInfographicElements, InfographicElement, getCS2PlayerData, CS2PlayerData, getValorantPlayerData, ValorantPlayerData } from '../lib/infographics'
 import './LEDBannerCanvas.css'
 
 interface LEDBannerCanvasProps {
@@ -21,6 +21,7 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
   const infographicTimerRef = useRef<Record<number, number>>({})
   const logoImagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
   const cs2PlayerDataRef = useRef<Record<number, CS2PlayerData[]>>({})
+  const valorantPlayerDataRef = useRef<Record<number, ValorantPlayerData[]>>({})
 
   const CANVAS_WIDTH = 1056
   const CANVAS_HEIGHT = 384
@@ -68,8 +69,25 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       }
     }
 
+    // Initialize Valorant player data for zones in Valorant data mode
+    const initializeValorantData = async () => {
+      for (const zone of zones) {
+        if (zone.displayMode === 'valorant-data') {
+          try {
+            console.log('Initializing Valorant data for LEDBanner zone', zone.id)
+            const playerData = await getValorantPlayerData()
+            valorantPlayerDataRef.current[zone.id] = playerData
+            console.log('Valorant player data loaded for LEDBanner zone', zone.id, ':', playerData)
+          } catch (error) {
+            console.error(`Error initializing Valorant data for zone ${zone.id}:`, error)
+          }
+        }
+      }
+    }
+
     initializeInfographics()
     initializeCS2Data()
+    initializeValorantData()
 
     const loadBackgroundElement = (zone: Zone): Promise<HTMLImageElement | HTMLVideoElement | null> => {
       return new Promise((resolve) => {
@@ -449,6 +467,70 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
       ctx.restore()
     }
 
+    const drawValorantData = async (zone: Zone, yPosition: number, width: number, height: number, scrollOffset: number) => {
+      const playerData = valorantPlayerDataRef.current[zone.id]
+      if (!playerData || playerData.length === 0) {
+        console.log('No Valorant player data available for LEDBanner zone', zone.id)
+        return
+      }
+
+      const fontSize = 32
+      const elementSpacing = 200 // Space between different players
+      const valorantFont = 'VCR_OSD_MONO' // Use VCR font for Valorant mode
+
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, yPosition, width, height)
+      ctx.clip()
+
+      // Calculate total carousel width
+      let totalCarouselWidth = 0
+      const playerDisplayData: { player: ValorantPlayerData, width: number }[] = []
+
+      for (const player of playerData) {
+        ctx.font = `bold ${fontSize}px ${getFontFamily(valorantFont)}`
+        // Format: "player | Month: XM Y% K/D Z.Z | Week: XM Y%"
+        const playerText = `${player.player_name} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}%, K/D: ${player.kd_ratio_month} | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
+        const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
+        const textWidth = ctx.measureText(displayText).width
+
+        playerDisplayData.push({ player, width: textWidth })
+        totalCarouselWidth += textWidth + elementSpacing
+      }
+
+      // Draw all elements in sequence
+      const textY = yPosition + (height / 2) + (fontSize / 3)
+      let currentPosition = scrollOffset
+
+      // Repeat the carousel to create seamless looping
+      const numRepeats = Math.ceil((width + Math.abs(scrollOffset)) / totalCarouselWidth) + 1
+
+      for (let repeat = 0; repeat < numRepeats; repeat++) {
+        let elementX = currentPosition
+
+        for (let i = 0; i < playerDisplayData.length; i++) {
+          const { player, width: playerWidth } = playerDisplayData[i]
+
+          // Skip if element is completely off screen
+          if (elementX > width || elementX + playerWidth < 0) {
+            elementX += playerWidth + elementSpacing
+            continue
+          }
+
+          ctx.fillStyle = zone.color
+          const playerText = `${player.player_name} | This month: ${player.matches_month} ranked games played, WR: ${player.winrate_month}%, K/D: ${player.kd_ratio_month} | This week: ${player.matches_week} ranked games played, WR: ${player.winrate_week}%`
+          const displayText = zone.forceUppercase ? playerText.toUpperCase() : playerText
+          ctx.fillText(displayText, elementX, textY)
+
+          elementX += playerWidth + elementSpacing
+        }
+
+        currentPosition += totalCarouselWidth
+      }
+
+      ctx.restore()
+    }
+
     const drawZone = async (zone: Zone, yPosition: number, scrollOffset: number, subScrollOffset: number) => {
       const width = zone.id === 4 ? 864 : CANVAS_WIDTH // Zone 4 is smaller
       const currentZoneHeight = ZONE_HEIGHT
@@ -467,7 +549,13 @@ const LEDBannerCanvas = ({ zones }: LEDBannerCanvasProps) => {
         await drawCS2Data(zone, yPosition, width, currentZoneHeight, scrollOffset)
         return
       }
-      
+
+      // Handle Valorant data mode
+      if (zone.displayMode === 'valorant-data') {
+        await drawValorantData(zone, yPosition, width, currentZoneHeight, scrollOffset)
+        return
+      }
+
       if ((zone.lineMode || 'single') === 'single') {
         // Single line mode - text in center of zone
         const fontSize = 48
