@@ -51,7 +51,7 @@ const DisplayPage = () => {
       try {
         console.log('🧪 Testing access to cs_player_stats table...')
         const { data, error } = await supabase
-          .from('valorant_player_stats')
+          .from('cs_player_stats')
           .select('*')
           .limit(1)
         
