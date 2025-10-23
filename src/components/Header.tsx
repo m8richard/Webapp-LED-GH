@@ -18,7 +18,7 @@ function Header() {
                     />
                     <div>
                         <h1 className="text-lg sm:text-xl font-bold leading-tight">Gaming House</h1>
-                        <p className="text-xs sm:text-sm text-gray-400">Editeur bannières LED</p>
+                        <p className="text-xs sm:text-sm text-gray-400">LED banner editor</p>
                     </div>
                 </div>
 
