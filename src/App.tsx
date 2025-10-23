@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import Dashboard from './pages/Dashboard';
-import DisplayPage from './pages/Display';
+import { useAuth } from '@/contexts/AuthContext';
+
+import LoginPage from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
+import DisplayPage from '@/pages/Display';
 
 function App() {
     const { user, loading, isValidUser } = useAuth();
@@ -18,23 +20,23 @@ function App() {
     return (
         <Router>
             <Routes>
-                {/* Public route for OBS display */}
+                {/* Public routes */}
                 <Route
                     path="/display"
                     element={<DisplayPage />}
                 />
 
+                <Route
+                    path="/login"
+                    element={<LoginPage />}
+                />
+
                 {/* Protected routes */}
-                {!user ? (
+                {!user || !isValidUser ? (
                     <Route
                         path="*"
-                        element={<Dashboard />}
-                    /> //TODO: Update later
-                ) : !isValidUser ? (
-                    <Route
-                        path="*"
-                        element={<Dashboard />}
-                    /> //TODO: Update later
+                        element={<LoginPage />}
+                    />
                 ) : (
                     <Route
                         path="/"
