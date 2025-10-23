@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Zone } from '@/lib/supabase';
+import type { Zone, NightMode } from '@/lib/supabase';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { FONTS } from '@/utils/constants';
 
 interface EditorProps {
     zones: Zone[];
     onUpdateZone: (zoneId: number, updates: Partial<Zone>) => void;
+    nightMode: NightMode;
+    onUpdateNightMode: (update: Partial<NightMode>) => void;
 }
 
-export default function Editor({ zones, onUpdateZone }: EditorProps) {
+export default function Editor({ zones, onUpdateZone, nightMode, onUpdateNightMode }: EditorProps) {
     const [expandedZone, setExpandedZone] = useState<number | null>(1);
 
     return (
@@ -24,6 +26,11 @@ export default function Editor({ zones, onUpdateZone }: EditorProps) {
                     onUpdate={updates => onUpdateZone(zone.id, updates)}
                 />
             ))}
+
+            <NightModeEditor
+                nightMode={nightMode}
+                onUpdate={onUpdateNightMode}
+            />
         </div>
     );
 }
@@ -388,6 +395,67 @@ function CheckboxField({ id, checked, onChange, label }: CheckboxFieldProps) {
             >
                 {label}
             </label>
+        </div>
+    );
+}
+
+interface NightModeEditorProps {
+    nightMode: NightMode;
+    onUpdate: (updates: Partial<NightMode>) => void;
+}
+
+function NightModeEditor({ nightMode, onUpdate }: NightModeEditorProps) {
+    const formatTime = (hour: number, minute: number) => `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+    const handleTimeChange = (value: string, isStart: boolean) => {
+        const [hours, minutes] = value.split(':').map(Number);
+
+        if (isStart) {
+            onUpdate({ startHour: hours, startMinute: minutes });
+        } else {
+            onUpdate({ endHour: hours, endMinute: minutes });
+        }
+    };
+
+    return (
+        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-4">
+            <h3 className="font-semibold">Night Mode</h3>
+
+            <CheckboxField
+                id="night-mode-enabled"
+                checked={nightMode.enabled}
+                onChange={checked => onUpdate({ enabled: checked })}
+                label="Enable Night Mode"
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium mb-2">Start Time</label>
+                    <input
+                        type="time"
+                        value={formatTime(nightMode.startHour, nightMode.startMinute)}
+                        onChange={e => handleTimeChange(e.target.value, true)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md time-picker-clickable"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium mb-2">End Time</label>
+                    <input
+                        type="time"
+                        value={formatTime(nightMode.endHour, nightMode.endMinute)}
+                        onChange={e => handleTimeChange(e.target.value, false)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md time-picker-clickable"
+                    />
+                </div>
+            </div>
+
+            <CheckboxField
+                id="night-mode-next-day"
+                checked={nightMode.endNextDay}
+                onChange={checked => onUpdate({ endNextDay: checked })}
+                label="End time is next day"
+            />
         </div>
     );
 }

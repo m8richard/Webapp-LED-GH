@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Zone } from '@/lib/supabase';
+import { Zone, NightMode } from '@/lib/supabase';
 
 import Header from '@/components/Header';
 import ProfileCard from '@/components/ProfileCard';
@@ -18,6 +18,14 @@ export default function DashboardPage() {
     const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
     const [editingProfileName, setEditingProfileName] = useState('');
     const [editingZones, setEditingZones] = useState<Zone[]>([]);
+    const [editingNightMode, setEditingNightMode] = useState<NightMode>({
+        enabled: false,
+        startHour: 23,
+        startMinute: 0,
+        endHour: 7,
+        endMinute: 0,
+        endNextDay: true
+    });
 
     const handleCreateProfile = () => {
         setEditingProfileId('new');
@@ -64,6 +72,14 @@ export default function DashboardPage() {
                 lineMode: 'single'
             }
         ]);
+        setEditingNightMode({
+            enabled: false,
+            startHour: 23,
+            startMinute: 0,
+            endHour: 7,
+            endMinute: 0,
+            endNextDay: true
+        });
     };
 
     const handleEdit = (id: string) => {
@@ -73,6 +89,16 @@ export default function DashboardPage() {
             setEditingProfileId(id);
             setEditingProfileName(profile.profile_name);
             setEditingZones(profile.zones_data);
+            setEditingNightMode(
+                profile.night_mode || {
+                    enabled: false,
+                    startHour: 23,
+                    startMinute: 0,
+                    endHour: 7,
+                    endMinute: 0,
+                    endNextDay: true
+                }
+            );
         }
     };
 
@@ -87,6 +113,10 @@ export default function DashboardPage() {
 
     const handleUpdateZone = (zoneId: number, updates: Partial<Zone>) => {
         setEditingZones(zones => zones.map(zone => (zone.id === zoneId ? { ...zone, ...updates } : zone)));
+    };
+
+    const handleUpdateNightMode = (update: Partial<NightMode>) => {
+        setEditingNightMode(nm => ({ ...nm, ...update }));
     };
 
     const handleCopy = (id: string) => {};
@@ -187,6 +217,8 @@ export default function DashboardPage() {
                                 <Editor
                                     zones={editingZones}
                                     onUpdateZone={handleUpdateZone}
+                                    nightMode={editingNightMode}
+                                    onUpdateNightMode={handleUpdateNightMode}
                                 />
                             </div>
                         </div>
