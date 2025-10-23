@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { Zone } from '@/lib/supabase';
-import useProfiles from '@/hooks/useProfiles';
+import { Zone } from '@/lib/supabase';
 import { BackgroundLayer, TextModeLayer, getBackgroundColor } from '@/components/Zone';
 import { ZONE_DIMENSIONS } from '@/utils/constants';
 
+import useProfiles from '@/hooks/useProfiles';
+import useNighMode from '@/hooks/useNightMode';
+
 export default function DisplayPage() {
     const { activeProfile, loading } = useProfiles();
+    const { nightMode } = useNighMode(activeProfile);
 
     if (loading || !activeProfile) {
         return (
@@ -15,6 +18,10 @@ export default function DisplayPage() {
                 <p className="text-white text-2xl">{loading ? 'Loading...' : 'No active profile.'}</p>
             </div>
         );
+    }
+
+    if (nightMode) {
+        return <div className="w-screen h-screen bg-black" />;
     }
 
     return (
