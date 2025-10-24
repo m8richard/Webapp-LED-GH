@@ -1,5 +1,11 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import type { Zone } from '@/lib/supabase';
+
+const ANIMATION_CONFIG = {
+    SMOOTH_TAU: 0.25,
+    MIN_COPIES: 2,
+    COPY_HEADROOM: 2
+};
 
 interface BackgroundLayerProps {
     zone: Zone;
@@ -44,120 +50,141 @@ interface ScrollingTextProps {
 
 function ScrollingText({ text, color, font, speed, fontSize, isPlaying = true }: ScrollingTextProps) {
     const containerRef = useRef<HTMLDivElement>(null);
-    const textRef = useRef<HTMLDivElement>(null);
-    const scrollOffsetRef = useRef(0);
-    const lastTimeRef = useRef<number>(0);
-    const animationFrameRef = useRef<number>();
-    const [textWidth, setTextWidth] = useState(0);
+    const trackRef = useRef<HTMLDivElement>(null);
+    const seqRef = useRef<HTMLDivElement>(null);
+    const rafRef = useRef<number | null>(null);
+    const lastTimestampRef = useRef<number | null>(null);
+    const offsetRef = useRef(0);
+    const velocityRef = useRef(0);
+
+    const [seqWidth, setSeqWidth] = useState(0);
+    const [copyCount, setCopyCount] = useState(ANIMATION_CONFIG.MIN_COPIES);
 
     const fontSizeStr = useMemo(() => (typeof fontSize === 'number' ? `${fontSize}px` : fontSize), [fontSize]);
+    const targetVelocity = useMemo(() => speed * 60, [speed]);
+
+    const updateDimensions = useCallback(() => {
+        const containerWidth = containerRef.current?.clientWidth ?? 0;
+        const sequenceWidth = seqRef.current?.getBoundingClientRect?.()?.width ?? 0;
+
+        if (sequenceWidth > 0) {
+            setSeqWidth(Math.ceil(sequenceWidth));
+            setCopyCount(Math.max(ANIMATION_CONFIG.MIN_COPIES, Math.ceil(containerWidth / sequenceWidth) + ANIMATION_CONFIG.COPY_HEADROOM));
+        }
+    }, []);
 
     useEffect(() => {
-        const tempSpan = document.createElement('span');
+        updateDimensions();
 
-        Object.assign(tempSpan.style, {
-            position: 'absolute',
-            visibility: 'hidden',
-            whiteSpace: 'nowrap',
-            fontWeight: 'bold',
-            fontFamily: font || 'Helvetica Neue, sans-serif',
-            fontSize: fontSizeStr,
-            lineHeight: '1'
-        });
+        if (!window.ResizeObserver) {
+            const handleResize = () => updateDimensions();
 
-        tempSpan.textContent = text;
+            window.addEventListener('resize', handleResize);
 
-        document.body.appendChild(tempSpan);
+            return () => window.removeEventListener('resize', handleResize);
+        }
 
-        const width = tempSpan.offsetWidth;
+        const observer = new ResizeObserver(updateDimensions);
 
-        document.body.removeChild(tempSpan);
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
+        }
 
-        setTextWidth(width);
-    }, [text, font, fontSizeStr]);
+        if (seqRef.current) {
+            observer.observe(seqRef.current);
+        }
 
-    useEffect(() => {
-        lastTimeRef.current = 0;
-    }, [isPlaying]);
+        return () => observer.disconnect();
+    }, [text, font, fontSizeStr, updateDimensions]);
 
     useEffect(() => {
-        scrollOffsetRef.current = 0;
-        lastTimeRef.current = 0;
-    }, [text, font, fontSizeStr]);
+        const track = trackRef.current;
+        if (!track) return;
 
-    useEffect(() => {
-        if (!textRef.current || !containerRef.current || textWidth === 0) return;
+        const prefersReduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-        const totalWidth = textWidth + 40;
+        if (seqWidth > 0) {
+            offsetRef.current = ((offsetRef.current % seqWidth) + seqWidth) % seqWidth;
+            track.style.transform = `translate3d(${-offsetRef.current}px, 0, 0)`;
+        }
 
-        const animate = (currentTime: number) => {
-            if (!textRef.current) {
-                animationFrameRef.current = requestAnimationFrame(animate);
-                return;
+        if (prefersReduced) {
+            track.style.transform = 'translate3d(0, 0, 0)';
+
+            return () => {
+                lastTimestampRef.current = null;
+            };
+        }
+
+        const animate = (timestamp: number) => {
+            if (lastTimestampRef.current === null) {
+                lastTimestampRef.current = timestamp;
             }
 
-            if (!isPlaying) {
-                lastTimeRef.current = 0;
-                animationFrameRef.current = requestAnimationFrame(animate);
-                return;
+            const deltaTime = Math.max(0, timestamp - lastTimestampRef.current) / 1000;
+            const target = isPlaying ? targetVelocity : 0;
+
+            lastTimestampRef.current = timestamp;
+            velocityRef.current += (target - velocityRef.current) * (1 - Math.exp(-deltaTime / ANIMATION_CONFIG.SMOOTH_TAU));
+
+            if (seqWidth > 0) {
+                offsetRef.current = (((offsetRef.current + velocityRef.current * deltaTime) % seqWidth) + seqWidth) % seqWidth;
+                track.style.transform = `translate3d(${-offsetRef.current}px, 0, 0)`;
             }
 
-            if (lastTimeRef.current === 0) {
-                lastTimeRef.current = currentTime;
-            }
-
-            const deltaTime = Math.min(currentTime - lastTimeRef.current, 100);
-
-            lastTimeRef.current = currentTime;
-            scrollOffsetRef.current -= (speed * 50 * deltaTime) / 1000;
-
-            if (scrollOffsetRef.current <= -totalWidth) {
-                scrollOffsetRef.current += totalWidth;
-            }
-
-            textRef.current.style.transform = `translateX(${scrollOffsetRef.current}px)`;
-            animationFrameRef.current = requestAnimationFrame(animate);
+            rafRef.current = requestAnimationFrame(animate);
         };
 
-        animationFrameRef.current = requestAnimationFrame(animate);
+        rafRef.current = requestAnimationFrame(animate);
 
         return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
             }
-        };
-    }, [textWidth, speed, isPlaying]);
 
-    const containerWidth = containerRef.current?.clientWidth || 1000;
-    const length = textWidth < containerWidth ? Math.ceil(containerWidth / (textWidth + 40)) + 2 : 2;
+            lastTimestampRef.current = null;
+        };
+    }, [targetVelocity, seqWidth, isPlaying]);
+
+    const containerStyle = useMemo(
+        () => ({
+            fontFamily: font || 'Helvetica Neue, sans-serif',
+            fontSize: fontSizeStr,
+            color
+        }),
+        [font, fontSizeStr, color]
+    );
 
     return (
         <div
             ref={containerRef}
             className="w-full h-full flex items-center overflow-hidden"
+            style={containerStyle}
         >
             <div
-                ref={textRef}
-                className="flex whitespace-nowrap font-bold"
+                ref={trackRef}
+                className="flex w-max will-change-transform select-none"
                 style={{ willChange: isPlaying ? 'transform' : 'auto' }}
             >
-                {Array.from({ length }).map((_, i) => (
-                    <span
-                        key={i}
-                        className="inline-block flex-shrink-0"
-                        style={{
-                            color,
-                            fontFamily: font || 'Helvetica Neue, sans-serif',
-                            fontSize: fontSizeStr,
-                            lineHeight: '1',
-                            marginRight: '40px',
-                            position: 'relative',
-                            top: '0.05em',
-                            verticalAlign: 'baseline'
-                        }}
+                {Array.from({ length: copyCount }, (_, copyIndex) => (
+                    <div
+                        key={`copy-${copyIndex}`}
+                        ref={copyIndex === 0 ? seqRef : undefined}
+                        className="flex items-center"
                     >
-                        {text}
-                    </span>
+                        <span
+                            className="inline-block font-bold whitespace-nowrap"
+                            style={{
+                                marginRight: '40px',
+                                position: 'relative',
+                                overflow: 'visible',
+                                top: '0.15em'
+                            }}
+                        >
+                            {text}
+                        </span>
+                    </div>
                 ))}
             </div>
         </div>
@@ -191,7 +218,7 @@ function TextModeLayer({ zone, isPlaying = true, fontSize = 48, doubleFontSize =
     if (zone.lineMode === 'double' && zone.subZone) {
         return (
             <>
-                <div className="absolute top-0 left-0 right-0 h-1/2 flex items-center overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1/2 pb-1 flex items-start overflow-visible">
                     <ScrollingText
                         text={zone.forceUppercase ? (zone.text || '').toUpperCase() : zone.text || ''}
                         color={zone.color}
@@ -201,7 +228,7 @@ function TextModeLayer({ zone, isPlaying = true, fontSize = 48, doubleFontSize =
                         isPlaying={isPlaying}
                     />
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 h-1/2 flex items-center overflow-hidden">
+                <div className="absolute bottom-0 left-0 right-0 flex items-end pb-2 overflow-visible">
                     <ScrollingText
                         text={zone.forceUppercase ? zone.subZone.text.toUpperCase() : zone.subZone.text}
                         color={zone.subZone.color}

@@ -106,7 +106,7 @@ function PreviewZone({ zone, dimensions, isPlaying }: PreviewZoneProps) {
                     zone={zone}
                     isPlaying={isPlaying}
                     fontSize="2rem"
-                    doubleFontSize="1.5rem"
+                    doubleFontSize="1.3rem"
                 />
             </div>
         </div>
