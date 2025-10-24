@@ -28,3 +28,11 @@
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   }
 }
+
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 7px;
+  border: 1px solid #d1d5db;
+  transition: all 0.2s ease;
+}
