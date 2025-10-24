@@ -211,6 +211,27 @@ export default function DashboardPage() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                             <div className="lg:sticky lg:top-4">
                                 <Preview zones={editingZones} />
+                                {editingNightMode?.enabled && (
+                                    <div className="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded">
+                                        <h3 className="text-lg font-semibold mb-2">🌙 Night Mode is enabled</h3>
+                                        <p className="text-sm">
+                                            All banners will be black from{' '}
+                                            <span className="font-medium">
+                                                {`${editingNightMode.startHour.toString().padStart(2, '0')}:${editingNightMode.startMinute
+                                                    .toString()
+                                                    .padStart(2, '0')}`}
+                                            </span>{' '}
+                                            to{' '}
+                                            <span className="font-medium">
+                                                {`${editingNightMode.endHour.toString().padStart(2, '0')}:${editingNightMode.endMinute
+                                                    .toString()
+                                                    .padStart(2, '0')}`}
+                                                {editingNightMode.endNextDay ? ' (next day)' : ''}
+                                            </span>
+                                            .
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="bg-white rounded-lg p-6 shadow-sm">
                                 <h3 className="text-lg font-semibold mb-8">Configuration</h3>
