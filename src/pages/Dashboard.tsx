@@ -1,7 +1,8 @@
 'use client';
 
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Radio } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Zone, NightMode } from '@/lib/supabase';
 
@@ -139,17 +140,28 @@ export default function DashboardPage() {
                             day: '2-digit'
                         })}
                     </p>
+
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <h1 className="text-2xl sm:text-3xl font-normal font-[family-name:var(--font-geist-sans)]">
                             Welcome, <span className="font-semibold">{user?.email}</span> ! 👋
                         </h1>
-                        <button
-                            onClick={handleCreateProfile}
-                            className="flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-opacity hover:opacity-90 self-start sm:self-auto bg-green-600 font-[family-name:var(--font-geist-sans)]"
-                        >
-                            <Plus size={20} />
-                            Create new profile
-                        </button>
+
+                        <div className="flex items-center gap-2">
+                            <Link to="/display">
+                                <button className="flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-opacity hover:opacity-90 bg-gray-600 font-[family-name:var(--font-geist-sans)]">
+                                    <Radio size={20} />
+                                    Display
+                                </button>
+                            </Link>
+
+                            <button
+                                onClick={handleCreateProfile}
+                                className="flex items-center gap-2 px-4 py-2 rounded-md text-white font-medium transition-opacity hover:opacity-90 bg-green-600 font-[family-name:var(--font-geist-sans)]"
+                            >
+                                <Plus size={20} />
+                                Create new profile
+                            </button>
+                        </div>
                     </div>
                 </div>
 
